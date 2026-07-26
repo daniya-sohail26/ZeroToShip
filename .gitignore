@@ -1,2 +1,31 @@
+# Python
 __pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Flat-file databases (runtime state — not committed)
+users_db.json
 tradepost_db.json
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
