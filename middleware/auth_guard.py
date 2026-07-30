@@ -73,7 +73,7 @@ def token_required(f):
             return jsonify({"error": "Invalid token. Authentication failed."}), 401
 
         # --- 3. Confirm user still exists in the store ---
-        user_id = payload.get("sub")
+        user_id = int(payload.get("sub"))   # stored as str; cast back to int
         current_user = _store.find_by_id(user_id)
 
         if current_user is None:

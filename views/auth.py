@@ -36,7 +36,7 @@ def _make_token(user: User) -> str:
     """
     secret = current_app.config["JWT_SECRET"]
     payload = {
-        "sub": user.user_id,
+        "sub": str(user.user_id),   # PyJWT 2.x requires sub as string
         "usr": user.username,
         "iat": datetime.datetime.utcnow(),
         "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=24),

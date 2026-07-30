@@ -24,6 +24,7 @@ import os
 from flask import Flask, jsonify
 
 from views.auth import auth_bp
+from views.routes import api_bp
 
 
 def create_app() -> Flask:
@@ -52,6 +53,7 @@ def create_app() -> Flask:
     # ------------------------------------------------------------------
 
     app.register_blueprint(auth_bp)          # /auth/register, /auth/login
+    app.register_blueprint(api_bp)           # /api/posts, /api/offers, ...
 
     # ------------------------------------------------------------------
     # Core routes
@@ -63,7 +65,7 @@ def create_app() -> Flask:
         Liveness check — no authentication required.
         Useful for Postman smoke tests and load-balancer health probes.
         """
-        return jsonify({"status": "ok", "phase": 2}), 200
+        return jsonify({"status": "ok", "phase": 3}), 200
 
     # ------------------------------------------------------------------
     # Global error handlers
@@ -92,11 +94,19 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     application = create_app()
 
-    print(f"[TradePost] Phase 2 server starting on http://127.0.0.1:{port}")
+    print(f"[TradePost] Phase 3 server starting on http://127.0.0.1:{port}")
     print(f"[TradePost] Debug mode: {application.config['DEBUG']}")
     print("[TradePost] Endpoints:")
     print("  GET  /health")
     print("  POST /auth/register")
     print("  POST /auth/login")
+    print("  GET  /api/posts")
+    print("  POST /api/posts")
+    print("  GET  /api/posts/<post_id>")
+    print("  GET  /api/posts/<post_id>/offers")
+    print("  POST /api/offers")
+    print("  PUT  /api/offers/<offer_id>/counter")
+    print("  PUT  /api/offers/<offer_id>/accept")
+    print("  PUT  /api/offers/<offer_id>/decline")
 
     application.run(host="0.0.0.0", port=port)
