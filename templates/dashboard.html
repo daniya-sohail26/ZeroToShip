@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TradePost — My Negotiations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../static/css/style.css" />
+  <style>
+    .tab-bar {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--clr-border);
+      margin-bottom: var(--sp-8);
+    }
+    .tab {
+      padding: var(--sp-3) var(--sp-6);
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--clr-muted);
+      cursor: pointer;
+      border: none;
+      background: none;
+      font-family: var(--font-sans);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: all var(--transition);
+      display: flex;
+      align-items: center;
+      gap: var(--sp-2);
+    }
+    .tab:hover { color: var(--clr-text); }
+    .tab.active { color: var(--clr-primary); border-bottom-color: var(--clr-primary); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .peer-row {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-3);
+      padding: var(--sp-3) var(--sp-4);
+      background: var(--clr-surface-2);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--clr-border);
+    }
+    .peer-row__name { font-weight: 600; font-size: 0.875rem; flex:1; }
+    .history-bubble {
+      padding: var(--sp-3) var(--sp-4);
+      border-radius: var(--radius-md);
+      font-size: 0.875rem;
+      line-height: 1.5;
+      max-width: 85%;
+    }
+    .history-bubble.sent {
+      background: rgba(79,142,247,.12);
+      border: 1px solid rgba(79,142,247,.25);
+      align-self: flex-end;
+      margin-left: auto;
+    }
+    .history-bubble.recv {
+      background: var(--clr-surface-2);
+      border: 1px solid var(--clr-border);
+    }
+    .history-bubble .bubble-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 4px;
+      color: var(--clr-muted);
+    }
+    .bubble-thread {
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-3);
+      padding: var(--sp-4);
+      background: var(--clr-surface-2);
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius-md);
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     NAVBAR
+═══════════════════════════════════════════════════════════ -->
+<nav class="navbar">
+  <div class="container navbar__inner">
+    <a href="index.html" class="navbar__logo">&#9654;&nbsp;<span>Trade</span>Post</a>
+    <ul class="navbar__links">
+      <li><a href="index.html">Marketplace</a></li>
+      <li><a href="dashboard.html" class="active">My Negotiations</a></li>
+    </ul>
+    <div class="navbar__actions">
+      <a href="index.html" class="btn btn-ghost btn-sm">&#128722; Browse Listings</a>
+      <div class="avatar" title="alice">A</div>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════
+     PAGE HEADER
+═══════════════════════════════════════════════════════════ -->
+<section style="padding: var(--sp-12) 0 var(--sp-6); border-bottom: 1px solid var(--clr-border);">
+  <div class="container">
+    <div class="section-header" style="margin-bottom:0;">
+      <div class="section-title">
+        <span class="section-kicker">&#128203; Active Trades</span>
+        <h1>Negotiation Dashboard</h1>
+        <p style="color:var(--clr-muted);font-size:0.9rem;margin-top:var(--sp-2);">
+          Track every live discussion, respond to counter-offers, and close deals.
+        </p>
+      </div>
+      <div class="flex gap-3 wrap items-center">
+        <span class="badge badge-your-turn"><span class="badge-dot"></span> 2 Need Action</span>
+        <span class="badge badge-pending">3 Active</span>
+        <span class="badge badge-accepted-glow">1 Closed</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MAIN DASHBOARD
+═══════════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="container">
+    <div class="dashboard-layout">
+
+      <!-- ── LEFT: Negotiations list ─────────────────────── -->
+      <div>
+
+        <!-- Tab bar -->
+        <div class="tab-bar">
+          <button class="tab active" onclick="switchTab('all',this)">
+            All <span class="badge badge-pending" style="font-size:.65rem;padding:1px 7px;">4</span>
+          </button>
+          <button class="tab" onclick="switchTab('your-turn',this)">
+            Your Turn <span class="badge badge-your-turn" style="font-size:.65rem;padding:1px 7px;">2</span>
+          </button>
+          <button class="tab" onclick="switchTab('waiting',this)">
+            Waiting
+            <span class="badge badge-waiting" style="font-size:.65rem;padding:1px 7px;">1</span>
+          </button>
+          <button class="tab" onclick="switchTab('closed',this)">Closed</button>
+        </div>
+
+        <div class="negotiation-list" id="negotiation-list">
+
+          <!-- ──────────────────────────────────────────────────
+               CARD 1 — YOUR TURN (Countered)
+          ────────────────────────────────────────────────── -->
+          <div class="negotiation-card your-turn" data-state="your-turn">
+            <div class="negotiation-card__header">
+              <div>
+                <p class="negotiation-card__title">Vintage Korg MS-20 Synthesizer</p>
+                <p class="negotiation-card__sub">Offer #3 &nbsp;·&nbsp; Post by <strong>bob_trades</strong></p>
+              </div>
+              <span class="badge badge-your-turn">
+                <span class="badge-dot"></span> Your Turn
+              </span>
+            </div>
+
+            <!-- Offer thread -->
+            <div class="bubble-thread">
+              <div class="history-bubble recv">
+                <p class="bubble-label">&#128100; bob_trades — Initial Offer</p>
+                Roland TR-808 drum machine, mint condition. All pads working, recently serviced.
+              </div>
+              <div class="history-bubble sent">
+                <p class="bubble-label">&#128100; You — Counter</p>
+                Interested, but I'd need you to add the original power supply. Can you do that?
+              </div>
+              <div class="history-bubble recv">
+                <p class="bubble-label">&#128100; bob_trades — Counter</p>
+                I can add the PSU + a set of patch cables. That's my final counter.
+              </div>
+            </div>
+
+            <div class="negotiation-card__body">
+              <p class="negotiation-card__body-label">&#128257; Current Offer on the Table</p>
+              <p>Roland TR-808 + original PSU + patch cables</p>
+            </div>
+
+            <div class="negotiation-card__actions">
+              <button class="btn btn-primary btn-sm" onclick="handleAction('accept',1)">&#10003; Accept Deal</button>
+              <button class="btn btn-ghost btn-sm" onclick="openCounter(1, 'Vintage Korg MS-20 Synthesizer')">&#8635; Counter</button>
+              <button class="btn btn-danger btn-sm" onclick="handleAction('decline',1)">&#10005; Decline</button>
+            </div>
+          </div>
+
+          <!-- ──────────────────────────────────────────────────
+               CARD 2 — YOUR TURN (Pending, first offer)
+          ────────────────────────────────────────────────── -->
+          <div class="negotiation-card your-turn" data-state="your-turn">
+            <div class="negotiation-card__header">
+              <div>
+                <p class="negotiation-card__title">1st Edition Pokémon Card Set</p>
+                <p class="negotiation-card__sub">Offer #7 &nbsp;·&nbsp; Post by <strong>dan_collects</strong></p>
+              </div>
+              <span class="badge badge-your-turn">
+                <span class="badge-dot"></span> Your Turn
+              </span>
+            </div>
+
+            <div class="bubble-thread">
+              <div class="history-bubble recv">
+                <p class="bubble-label">&#128100; dan_collects — Initial Offer</p>
+                Complete Lego Technic Bugatti Chiron set, sealed in box. Retail $450. Willing to trade straight up.
+              </div>
+            </div>
+
+            <div class="negotiation-card__body">
+              <p class="negotiation-card__body-label">&#128257; Current Offer on the Table</p>
+              <p>Lego Technic Bugatti Chiron — sealed, retail $450</p>
+            </div>
+
+            <div class="negotiation-card__actions">
+              <button class="btn btn-primary btn-sm" onclick="handleAction('accept',7)">&#10003; Accept Deal</button>
+              <button class="btn btn-ghost btn-sm" onclick="openCounter(7, '1st Edition Pokémon Card Set')">&#8635; Counter</button>
+              <button class="btn btn-danger btn-sm" onclick="handleAction('decline',7)">&#10005; Decline</button>
+            </div>
+          </div>
+
+          <!-- ──────────────────────────────────────────────────
+               CARD 3 — WAITING FOR PEER
+          ────────────────────────────────────────────────── -->
+          <div class="negotiation-card waiting" data-state="waiting">
+            <div class="negotiation-card__header">
+              <div>
+                <p class="negotiation-card__title">Sony A7III Mirrorless Camera</p>
+                <p class="negotiation-card__sub">Offer #2 &nbsp;·&nbsp; Post by <strong>carol_snap</strong></p>
+              </div>
+              <span class="badge badge-waiting">
+                <span class="badge-dot"></span> Waiting for Peer
+              </span>
+            </div>
+
+            <div class="bubble-thread">
+              <div class="history-bubble sent">
+                <p class="bubble-label">&#128100; You — Initial Offer</p>
+                DJI Pocket 2 Creator Combo, perfect condition. Less than 3 hours flight time.
+              </div>
+              <div class="history-bubble recv">
+                <p class="bubble-label">&#128100; carol_snap — Counter</p>
+                The Pocket 2 is tempting but I need something closer in value. Can you add accessories?
+              </div>
+              <div class="history-bubble sent">
+                <p class="bubble-label">&#128100; You — Counter</p>
+                Adding the DJI ND filter set and a spare battery. That should close the gap.
+              </div>
+            </div>
+
+            <div class="negotiation-card__body">
+              <p class="negotiation-card__body-label">&#9200; Awaiting carol_snap's Response</p>
+              <p style="color:var(--clr-muted);font-style:italic;">
+                Your counter was sent 2 hours ago. The ball is in their court.
+              </p>
+            </div>
+
+            <div class="negotiation-card__actions">
+              <button class="btn btn-ghost btn-sm" disabled style="opacity:.4;cursor:not-allowed;">
+                &#128336; Awaiting Response
+              </button>
+            </div>
+          </div>
+
+          <!-- ──────────────────────────────────────────────────
+               CARD 4 — ACCEPTED / CLOSED
+          ────────────────────────────────────────────────── -->
+          <div class="negotiation-card accepted" data-state="closed">
+            <div class="negotiation-card__header">
+              <div>
+                <p class="negotiation-card__title">Roland TR-808 Drum Machine</p>
+                <p class="negotiation-card__sub">Offer #1 &nbsp;·&nbsp; Post by <strong>henry_beats</strong></p>
+              </div>
+              <span class="badge badge-accepted-glow">&#10003; Deal Accepted</span>
+            </div>
+
+            <div class="bubble-thread">
+              <div class="history-bubble sent">
+                <p class="bubble-label">&#128100; You — Initial Offer</p>
+                Arturia MiniLab Mk2 + Arturia Analog Lab V license key.
+              </div>
+              <div class="history-bubble recv">
+                <p class="bubble-label">&#128100; henry_beats — Accepted</p>
+                Deal! That's a fair trade. Let's arrange the swap.
+              </div>
+            </div>
+
+            <div class="negotiation-card__body">
+              <p class="negotiation-card__body-label">&#127881; Trade Complete</p>
+              <p>Arturia MiniLab Mk2 + license traded for Roland TR-808 — closed 3 days ago.</p>
+            </div>
+
+            <div class="negotiation-card__actions">
+              <span class="badge badge-accepted-glow" style="font-size:.8rem;padding:.3rem .8rem;">
+                &#10003; Completed
+              </span>
+            </div>
+          </div>
+
+        </div><!-- /negotiation-list -->
+      </div><!-- /left col -->
+
+      <!-- ── RIGHT: Sidebar ──────────────────────────────── -->
+      <aside>
+
+        <!-- Stat cards -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <p class="stat-card__value" style="color:var(--clr-warning);">2</p>
+            <p class="stat-card__label">Need Action</p>
+          </div>
+          <div class="stat-card">
+            <p class="stat-card__value" style="color:var(--clr-danger);">1</p>
+            <p class="stat-card__label">Waiting</p>
+          </div>
+          <div class="stat-card">
+            <p class="stat-card__value" style="color:var(--clr-success);">1</p>
+            <p class="stat-card__label">Completed</p>
+          </div>
+          <div class="stat-card">
+            <p class="stat-card__value">4</p>
+            <p class="stat-card__label">Total Trades</p>
+          </div>
+        </div>
+
+        <!-- Turn timeline -->
+        <div class="card" style="margin-bottom:var(--sp-6);">
+          <h4 style="margin-bottom:var(--sp-4);">&#128336; Recent Activity</h4>
+          <div class="timeline">
+            <div class="timeline-item">
+              <div class="timeline-dot current">&#9654;</div>
+              <div class="timeline-content">
+                <p><strong>bob_trades</strong> countered on Korg MS-20</p>
+                <small>15 minutes ago &nbsp;·&nbsp;
+                  <span class="badge badge-your-turn" style="font-size:.62rem;padding:1px 6px;">Your Turn</span>
+                </small>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-dot sent">A</div>
+              <div class="timeline-content">
+                <p>You countered on Sony A7III</p>
+                <small>2 hours ago &nbsp;·&nbsp;
+                  <span class="badge badge-waiting" style="font-size:.62rem;padding:1px 6px;">Waiting</span>
+                </small>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-dot recv">D</div>
+              <div class="timeline-content">
+                <p><strong>dan_collects</strong> placed offer on Pokémon set</p>
+                <small>5 hours ago &nbsp;·&nbsp;
+                  <span class="badge badge-your-turn" style="font-size:.62rem;padding:1px 6px;">Your Turn</span>
+                </small>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-dot sent">A</div>
+              <div class="timeline-content">
+                <p>Trade with <strong>henry_beats</strong> completed</p>
+                <small>3 days ago &nbsp;·&nbsp;
+                  <span class="badge badge-accepted-glow" style="font-size:.62rem;padding:1px 6px;">&#10003; Done</span>
+                </small>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick peer lookup -->
+        <div class="card">
+          <h4 style="margin-bottom:var(--sp-4);">&#128101; Active Peers</h4>
+          <div style="display:flex;flex-direction:column;gap:var(--sp-3);">
+            <div class="peer-row">
+              <div class="avatar">B</div>
+              <p class="peer-row__name">bob_trades</p>
+              <span class="badge badge-your-turn" style="font-size:.65rem;">Your Turn</span>
+            </div>
+            <div class="peer-row">
+              <div class="avatar">C</div>
+              <p class="peer-row__name">carol_snap</p>
+              <span class="badge badge-waiting" style="font-size:.65rem;">Waiting</span>
+            </div>
+            <div class="peer-row">
+              <div class="avatar">D</div>
+              <p class="peer-row__name">dan_collects</p>
+              <span class="badge badge-your-turn" style="font-size:.65rem;">Your Turn</span>
+            </div>
+            <div class="peer-row" style="opacity:.5;">
+              <div class="avatar" style="background:var(--clr-surface-2);color:var(--clr-muted);">H</div>
+              <p class="peer-row__name" style="color:var(--clr-muted);">henry_beats</p>
+              <span class="badge badge-accepted-glow" style="font-size:.65rem;">Done</span>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+    </div><!-- /dashboard-layout -->
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     COUNTER-OFFER MODAL
+═══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-counter" onclick="closeOnBackdrop(event,'modal-counter')">
+  <div class="modal">
+    <div class="modal__header">
+      <div>
+        <h3>Send a Counter-Offer</h3>
+        <p style="font-size:.82rem;color:var(--clr-muted);margin-top:4px;">
+          Negotiating: <strong id="counter-post-title">—</strong>
+        </p>
+      </div>
+      <button class="modal__close" onclick="closeModal('modal-counter')">&times;</button>
+    </div>
+    <form onsubmit="submitCounter(event)">
+      <div style="display:flex;flex-direction:column;gap:var(--sp-4);">
+        <div class="form-group">
+          <label class="form-label">Your revised offer</label>
+          <textarea class="form-textarea" id="counter-details" rows="4"
+            placeholder="Describe your updated offer — what you're adding, removing, or changing…" required></textarea>
+        </div>
+        <div style="padding:var(--sp-3) var(--sp-4);background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:var(--radius-sm);font-size:.82rem;color:#fbbf24;">
+          &#9888;&#65039; Submitting this will flip the turn to your peer. They must respond next.
+        </div>
+        <div style="display:flex;gap:var(--sp-3);margin-top:var(--sp-2);">
+          <button type="button" class="btn btn-ghost btn-full" onclick="closeModal('modal-counter')">Cancel</button>
+          <button type="submit" class="btn btn-accent btn-full">&#8635; Send Counter</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     TOAST AREA
+═══════════════════════════════════════════════════════════ -->
+<div class="toast-area" id="toast-area"></div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     FOOTER
+═══════════════════════════════════════════════════════════ -->
+<footer class="footer">
+  <div class="container">
+    <p>TradePost &mdash; Phase 4 Static UI &nbsp;|&nbsp;
+      <a href="index.html">Marketplace</a> &nbsp;|&nbsp;
+      <a href="#">API Docs</a>
+    </p>
+  </div>
+</footer>
+
+<script src="../static/js/app.js"></script>
+</body>
+</html>
