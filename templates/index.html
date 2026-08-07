@@ -1,446 +1,225 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TradePost — Marketplace</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../static/css/style.css" />
-  <style>
-    /* ── page-specific tweaks ── */
-    .item-card__img-wrap {
-      width: 100%;
-      aspect-ratio: 4/3;
-      border-radius: 8px;
-      background: var(--clr-surface-2);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 3.2rem;
-      overflow: hidden;
-      margin-bottom: var(--sp-4);
-      border: 1px solid var(--clr-border);
-    }
-    .offer-target-preview {
-      display: flex;
-      align-items: center;
-      gap: var(--sp-3);
-      padding: var(--sp-3) var(--sp-4);
-      background: var(--clr-surface-2);
-      border: 1px solid var(--clr-border);
-      border-radius: var(--radius-sm);
-      margin-bottom: var(--sp-6);
-    }
-    .offer-target-preview .emoji { font-size: 2rem; }
-    .offers-count-bar {
-      display: flex;
-      align-items: center;
-      gap: var(--sp-2);
-      font-size: 0.78rem;
-      color: var(--clr-muted);
-    }
-    .offers-count-bar span {
-      background: var(--clr-surface-2);
-      border: 1px solid var(--clr-border);
-      border-radius: var(--radius-pill);
-      padding: 1px 8px;
-      font-size: 0.72rem;
-      font-weight: 700;
-      color: var(--clr-text);
-    }
-  </style>
-</head>
-<body>
+{% extends "base.html" %}
+{% block title %}TradePost — Marketplace{% endblock %}
 
-<!-- ═══════════════════════════════════════════════════════════
-     NAVBAR
-═══════════════════════════════════════════════════════════ -->
-<nav class="navbar">
-  <div class="container navbar__inner">
-    <a href="index.html" class="navbar__logo">
-      &#9654;&nbsp;<span>Trade</span>Post
-    </a>
-    <ul class="navbar__links">
-      <li><a href="index.html" class="active">Marketplace</a></li>
-      <li><a href="dashboard.html">My Negotiations</a></li>
-    </ul>
-    <div class="navbar__actions">
-      <a href="dashboard.html" class="btn btn-ghost btn-sm">
-        &#128203; Dashboard
-        <span class="badge badge-your-turn" style="margin-left:4px;padding:2px 8px;font-size:0.65rem;">2</span>
-      </a>
-      <button class="btn btn-primary btn-sm" onclick="openModal('modal-post')">
-        + New Listing
-      </button>
-      <div class="avatar" title="Logged in as alice">A</div>
-    </div>
-  </div>
-</nav>
-
-<!-- ═══════════════════════════════════════════════════════════
-     HERO
-═══════════════════════════════════════════════════════════ -->
+{% block content %}
+<!-- Hero -->
 <section class="hero">
   <div class="container">
     <div class="hero__kicker">&#127381; Live Barter Exchange</div>
-    <h1 class="hero__title">
-      Trade What You Have<br/>For <span>What You Need</span>
-    </h1>
-    <p class="hero__sub">
-      Browse peer listings, submit counter-bids, and close deals — no money changes hands.
-    </p>
+    <h1 class="hero__title">Trade What You Have<br/>For <span>What You Need</span></h1>
+    <p class="hero__sub">Browse peer listings, submit counter-bids, and close deals — no money changes hands.</p>
     <div class="hero__cta">
-      <button class="btn btn-primary" onclick="openModal('modal-post')">+ Post an Item</button>
-      <a href="dashboard.html" class="btn btn-ghost">View My Negotiations &#8594;</a>
+      {% if user %}
+        <button class="btn btn-primary" onclick="openModal('modal-post')">+ Post an Item</button>
+        <a href="{{ url_for('pages.dashboard') }}" class="btn btn-ghost">My Negotiations &#8594;</a>
+      {% else %}
+        <a href="{{ url_for('pages.register_page') }}" class="btn btn-primary">Get Started Free</a>
+        <a href="{{ url_for('pages.login_page') }}" class="btn btn-ghost">Log In &#8594;</a>
+      {% endif %}
+    </div>
+    <div class="hero__stats">
+      <div><p class="hero__stat-val">{{ posts|length }}</p><p class="hero__stat-label">Total Listings</p></div>
+      <div><p class="hero__stat-val" style="color:var(--clr-success)">{{ open_count }}</p><p class="hero__stat-label">Open</p></div>
+      <div><p class="hero__stat-val" style="color:var(--clr-muted)">{{ closed_count }}</p><p class="hero__stat-label">Closed</p></div>
     </div>
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════════
-     MARKETPLACE SECTION
-═══════════════════════════════════════════════════════════ -->
+<!-- Marketplace -->
 <section class="section">
   <div class="container">
-
-    <!-- Section header -->
     <div class="section-header">
       <div class="section-title">
         <span class="section-kicker">All Listings</span>
         <h2>Trading Board</h2>
       </div>
       <div class="flex gap-3 items-center">
-        <span class="badge badge-open"><span class="badge-dot"></span> 8 Open</span>
-        <span class="badge badge-closed">3 Closed</span>
+        <span class="badge badge-open"><span class="badge-dot"></span> {{ open_count }} Open</span>
+        <span class="badge badge-closed">{{ closed_count }} Closed</span>
       </div>
     </div>
 
-    <!-- Filter bar -->
     <div class="filter-bar">
       <div class="filter-bar__search">
         <span class="filter-bar__search-icon">&#128269;</span>
-        <input class="form-input" type="text" placeholder="Search listings…" id="search-input" oninput="filterCards()" />
+        <input class="form-input" type="text" placeholder="Search listings…" id="search-input" oninput="filterCards()"/>
       </div>
       <div class="filter-chips">
-        <button class="chip active" onclick="setFilter('All', this)">All</button>
-        <button class="chip" onclick="setFilter('Electronics', this)">Electronics</button>
-        <button class="chip" onclick="setFilter('Music', this)">Music</button>
-        <button class="chip" onclick="setFilter('Books', this)">Books</button>
-        <button class="chip" onclick="setFilter('Collectibles', this)">Collectibles</button>
-        <button class="chip" onclick="setFilter('Sports', this)">Sports</button>
+        <button class="chip active" onclick="setFilter('All',this)">All</button>
+        <button class="chip" onclick="setFilter('Open',this)">Open</button>
+        <button class="chip" onclick="setFilter('Closed',this)">Closed</button>
       </div>
-      <div style="margin-left:auto;">
-        <select class="form-select" style="width:auto;min-width:140px;" onchange="sortCards(this.value)">
+      <div style="margin-left:auto">
+        <select class="form-select" style="width:auto;min-width:140px" onchange="sortCards(this.value)">
           <option value="newest">Newest First</option>
+          <option value="oldest">Oldest First</option>
+          <option value="alpha">A &#8594; Z</option>
           <option value="offers">Most Offers</option>
-          <option value="alpha">A → Z</option>
         </select>
       </div>
     </div>
 
-    <!-- ── Marketplace Grid ── -->
+    {% if posts %}
     <div class="marketplace-grid" id="marketplace-grid">
-
-      <!-- Card 1 -->
-      <article class="card item-card" data-category="Music" data-title="Vintage Korg MS-20 Synthesizer" data-offers="3">
-        <div class="item-card__img-wrap">&#127925;</div>
-        <div>
-          <p class="item-card__category">Music</p>
-          <h3 class="item-card__title">Vintage Korg MS-20 Synthesizer</h3>
-          <p class="item-card__desc">Semi-modular analog synth in excellent condition. Comes with original manual and patch cables. A genuine piece of history.</p>
+      {% for post in posts %}
+      {% set cnt = offer_counts.get(post.post_id, 0) %}
+      <article class="card item-card {% if post.status == 'Closed' %}is-closed{% endif %}"
+               data-status="{{ post.status }}"
+               data-title="{{ post.title|lower }}"
+               data-offers="{{ cnt }}">
+        <div class="item-card__img-wrap">
+          {{ ['&#127925;','&#128247;','&#128218;','&#127760;','&#128690;','&#9000;','&#127183;','&#127941;','&#128295;','&#127381;'][(post.post_id - 1) % 10] }}
         </div>
-        <div class="flex gap-2 wrap" style="margin-top:var(--sp-2);">
-          <span class="badge badge-open"><span class="badge-dot"></span> Open</span>
-          <span class="badge badge-pending">3 offers</span>
+        <div>
+          <p class="item-card__category">Listing #{{ post.post_id }}</p>
+          <h3 class="item-card__title">{{ post.title }}</h3>
+          <p class="item-card__desc">{{ post.description }}</p>
+        </div>
+        <div class="flex gap-2 wrap" style="margin-top:var(--sp-2)">
+          {% if post.status == 'Open' %}
+            <span class="badge badge-open"><span class="badge-dot"></span> Open</span>
+          {% else %}
+            <span class="badge badge-closed">Closed</span>
+          {% endif %}
+          {% if cnt > 0 %}
+            <span class="badge badge-pending">{{ cnt }} offer{{ 's' if cnt != 1 }}</span>
+          {% else %}
+            <span style="font-size:.78rem;color:var(--clr-muted)">No offers yet</span>
+          {% endif %}
         </div>
         <div class="item-card__meta">
           <div class="item-card__owner">
-            <div class="avatar">B</div>
-            <span>by <strong>bob_trades</strong></span>
+            <div class="avatar" style="width:26px;height:26px;font-size:.65rem">
+              {{ ((loop.index % 9) + 65) | chr }}
+            </div>
+            <span>Post #{{ post.post_id }}</span>
           </div>
-          <button class="btn btn-primary btn-sm" onclick="openOffer('Vintage Korg MS-20 Synthesizer','&#127925;', 1)">Make Offer</button>
+          {% if post.status == 'Open' and user and post.owner_id != user.user_id %}
+            <button class="btn btn-primary btn-sm"
+              onclick="openOffer('{{ post.title|replace("'","\\'")|e }}', {{ post.post_id }})">
+              Make Offer
+            </button>
+          {% elif post.status == 'Open' and user and post.owner_id == user.user_id %}
+            <span class="badge badge-pending" style="font-size:.65rem">Your listing</span>
+          {% elif not user %}
+            <a href="{{ url_for('pages.login_page') }}" class="btn btn-ghost btn-sm">Login to Offer</a>
+          {% else %}
+            <button class="btn btn-ghost btn-sm" disabled>Closed</button>
+          {% endif %}
         </div>
       </article>
-
-      <!-- Card 2 -->
-      <article class="card item-card" data-category="Electronics" data-title="Sony A7III Mirrorless Camera" data-offers="1">
-        <div class="item-card__img-wrap">&#128247;</div>
-        <div>
-          <p class="item-card__category">Electronics</p>
-          <h3 class="item-card__title">Sony A7III Mirrorless Camera</h3>
-          <p class="item-card__desc">Full-frame sensor, 24.2 MP. Includes 28–70mm kit lens, two batteries, and a carrying case. Lightly used.</p>
-        </div>
-        <div class="flex gap-2 wrap" style="margin-top:var(--sp-2);">
-          <span class="badge badge-open"><span class="badge-dot"></span> Open</span>
-          <span class="badge badge-pending">1 offer</span>
-        </div>
-        <div class="item-card__meta">
-          <div class="item-card__owner">
-            <div class="avatar">C</div>
-            <span>by <strong>carol_snap</strong></span>
-          </div>
-          <button class="btn btn-primary btn-sm" onclick="openOffer('Sony A7III Mirrorless Camera','&#128247;', 2)">Make Offer</button>
-        </div>
-      </article>
-
-      <!-- Card 3 -->
-      <article class="card item-card" data-category="Collectibles" data-title="1st Edition Pokémon Card Set" data-offers="5">
-        <div class="item-card__img-wrap">&#127183;</div>
-        <div>
-          <p class="item-card__category">Collectibles</p>
-          <h3 class="item-card__title">1st Edition Pokémon Card Set</h3>
-          <p class="item-card__desc">Complete base set, all 102 cards in near-mint condition. Professionally graded PSA 8+ on holographics. Stored in binder.</p>
-        </div>
-        <div class="flex gap-2 wrap" style="margin-top:var(--sp-2);">
-          <span class="badge badge-open"><span class="badge-dot"></span> Open</span>
-          <span class="badge badge-pending">5 offers</span>
-        </div>
-        <div class="item-card__meta">
-          <div class="item-card__owner">
-            <div class="avatar">D</div>
-            <span>by <strong>dan_collects</strong></span>
-          </div>
-          <button class="btn btn-primary btn-sm" onclick="openOffer('1st Edition Pokémon Card Set','&#127183;', 3)">Make Offer</button>
-        </div>
-      </article>
-
-      <!-- Card 4 -->
-      <article class="card item-card" data-category="Books" data-title="Complete DUNE Series (Hardcover)" data-offers="2">
-        <div class="item-card__img-wrap">&#128218;</div>
-        <div>
-          <p class="item-card__category">Books</p>
-          <h3 class="item-card__title">Complete DUNE Series (Hardcover)</h3>
-          <p class="item-card__desc">All six original Frank Herbert novels in matching hardcover editions. Minimal spine wear, no highlighting or notes inside.</p>
-        </div>
-        <div class="flex gap-2 wrap" style="margin-top:var(--sp-2);">
-          <span class="badge badge-open"><span class="badge-dot"></span> Open</span>
-          <span class="badge badge-pending">2 offers</span>
-        </div>
-        <div class="item-card__meta">
-          <div class="item-card__owner">
-            <div class="avatar">E</div>
-            <span>by <strong>eve_reads</strong></span>
-          </div>
-          <button class="btn btn-primary btn-sm" onclick="openOffer('Complete DUNE Series (Hardcover)','&#128218;', 4)">Make Offer</button>
-        </div>
-      </article>
-
-      <!-- Card 5 -->
-      <article class="card item-card" data-category="Sports" data-title="Carbon Fibre Road Bicycle" data-offers="0">
-        <div class="item-card__img-wrap">&#128690;</div>
-        <div>
-          <p class="item-card__category">Sports</p>
-          <h3 class="item-card__title">Carbon Fibre Road Bicycle</h3>
-          <p class="item-card__desc">Shimano 105 groupset, 56cm frame. New chain and tyres fitted last month. Great for weekend endurance rides.</p>
-        </div>
-        <div class="flex gap-2 wrap" style="margin-top:var(--sp-2);">
-          <span class="badge badge-open"><span class="badge-dot"></span> Open</span>
-          <span style="font-size:0.78rem;color:var(--clr-muted);">No offers yet</span>
-        </div>
-        <div class="item-card__meta">
-          <div class="item-card__owner">
-            <div class="avatar">F</div>
-            <span>by <strong>frank_rides</strong></span>
-          </div>
-          <button class="btn btn-primary btn-sm" onclick="openOffer('Carbon Fibre Road Bicycle','&#128690;', 5)">Make Offer</button>
-        </div>
-      </article>
-
-      <!-- Card 6 -->
-      <article class="card item-card" data-category="Electronics" data-title="Mechanical Keyboard — Keychron Q1" data-offers="4">
-        <div class="item-card__img-wrap">&#9000;</div>
-        <div>
-          <p class="item-card__category">Electronics</p>
-          <h3 class="item-card__title">Mechanical Keyboard — Keychron Q1</h3>
-          <p class="item-card__desc">Gateron G Pro switches, aluminum body, QMK-programmable. Used for 6 months. Includes original box and USB-C cable.</p>
-        </div>
-        <div class="flex gap-2 wrap" style="margin-top:var(--sp-2);">
-          <span class="badge badge-open"><span class="badge-dot"></span> Open</span>
-          <span class="badge badge-pending">4 offers</span>
-        </div>
-        <div class="item-card__meta">
-          <div class="item-card__owner">
-            <div class="avatar">G</div>
-            <span>by <strong>grace_types</strong></span>
-          </div>
-          <button class="btn btn-primary btn-sm" onclick="openOffer('Mechanical Keyboard — Keychron Q1','&#9000;', 6)">Make Offer</button>
-        </div>
-      </article>
-
-      <!-- Card 7 — CLOSED -->
-      <article class="card item-card" data-category="Music" data-title="Roland TR-808 Drum Machine" data-offers="0" style="opacity:.6;pointer-events:none;">
-        <div class="item-card__img-wrap">&#127941;</div>
-        <div>
-          <p class="item-card__category">Music</p>
-          <h3 class="item-card__title">Roland TR-808 Drum Machine</h3>
-          <p class="item-card__desc">Iconic drum machine in working order. All pads responsive. Cleaned and serviced. Trade completed.</p>
-        </div>
-        <div class="flex gap-2 wrap" style="margin-top:var(--sp-2);">
-          <span class="badge badge-closed">Closed</span>
-          <span class="badge badge-accepted-glow">Deal Made</span>
-        </div>
-        <div class="item-card__meta">
-          <div class="item-card__owner">
-            <div class="avatar">H</div>
-            <span>by <strong>henry_beats</strong></span>
-          </div>
-          <button class="btn btn-ghost btn-sm" disabled>Closed</button>
-        </div>
-      </article>
-
-      <!-- Card 8 -->
-      <article class="card item-card" data-category="Collectibles" data-title="Vintage Leica M3 Film Camera" data-offers="2">
-        <div class="item-card__img-wrap">&#127760;</div>
-        <div>
-          <p class="item-card__category">Collectibles</p>
-          <h3 class="item-card__title">Vintage Leica M3 Film Camera</h3>
-          <p class="item-card__desc">1957 double-stroke model, recently CLA'd. Shutter speeds accurate, rangefinder bright and clear. No lens included.</p>
-        </div>
-        <div class="flex gap-2 wrap" style="margin-top:var(--sp-2);">
-          <span class="badge badge-open"><span class="badge-dot"></span> Open</span>
-          <span class="badge badge-pending">2 offers</span>
-        </div>
-        <div class="item-card__meta">
-          <div class="item-card__owner">
-            <div class="avatar">I</div>
-            <span>by <strong>iris_film</strong></span>
-          </div>
-          <button class="btn btn-primary btn-sm" onclick="openOffer('Vintage Leica M3 Film Camera','&#127760;', 8)">Make Offer</button>
-        </div>
-      </article>
-
-    </div><!-- /marketplace-grid -->
-
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-state__icon">&#128722;</div>
+      <h3>No listings yet</h3>
+      <p>Be the first to post an item to the Trading Board.</p>
+      {% if user %}
+        <button class="btn btn-primary" style="margin-top:var(--sp-6)" onclick="openModal('modal-post')">+ Post an Item</button>
+      {% else %}
+        <a href="{{ url_for('pages.register_page') }}" class="btn btn-primary" style="margin-top:var(--sp-6)">Get Started</a>
+      {% endif %}
+    </div>
+    {% endif %}
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════════
-     OFFER MODAL
-═══════════════════════════════════════════════════════════ -->
+<!-- Offer Modal -->
+{% if user %}
 <div class="modal-overlay" id="modal-offer" onclick="closeOnBackdrop(event,'modal-offer')">
   <div class="modal">
     <div class="modal__header">
-      <div>
-        <h3>Submit a Barter Offer</h3>
-        <p style="font-size:0.82rem;color:var(--clr-muted);margin-top:4px;">
-          Describe what you're offering in exchange
-        </p>
-      </div>
+      <div><h3>Submit a Barter Offer</h3><p style="font-size:.82rem;color:var(--clr-muted);margin-top:4px">Describe what you're offering in exchange</p></div>
       <button class="modal__close" onclick="closeModal('modal-offer')">&times;</button>
     </div>
-
-    <!-- Target item preview -->
     <div class="offer-target-preview">
-      <span class="emoji" id="offer-emoji">&#127925;</span>
+      <span style="font-size:1.6rem">&#128722;</span>
       <div>
-        <p style="font-size:0.72rem;color:var(--clr-muted);text-transform:uppercase;letter-spacing:.08em;">Trading for</p>
-        <strong id="offer-target-title" style="font-size:0.9rem;">Vintage Korg MS-20 Synthesizer</strong>
+        <p style="font-size:.7rem;color:var(--clr-muted);text-transform:uppercase;letter-spacing:.08em">Trading for</p>
+        <strong id="offer-target-title" style="font-size:.9rem">—</strong>
       </div>
     </div>
-
-    <form onsubmit="submitOffer(event)">
-      <div style="display:flex;flex-direction:column;gap:var(--sp-4);">
+    <form id="form-offer">
+      <input type="hidden" id="offer-post-id"/>
+      <div style="display:flex;flex-direction:column;gap:var(--sp-4)">
         <div class="form-group">
-          <label class="form-label" for="offer-item-name">What are you offering?</label>
-          <input class="form-input" id="offer-item-name" type="text"
-                 placeholder="e.g. Roland Jupiter-8, 1978 model" required />
+          <label class="form-label">Your offer details</label>
+          <textarea class="form-textarea" id="offer-details" rows="4"
+            placeholder="Describe your item — condition, accessories, why it's a fair trade…" required></textarea>
         </div>
-        <div class="form-group">
-          <label class="form-label" for="offer-details">Item description &amp; condition</label>
-          <textarea class="form-textarea" id="offer-details"
-                    placeholder="Describe the condition, accessories included, and why it makes a fair trade…" required></textarea>
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="offer-category">Your item's category</label>
-          <select class="form-select" id="offer-category">
-            <option value="">— Select a category —</option>
-            <option>Electronics</option>
-            <option>Music</option>
-            <option>Books</option>
-            <option>Collectibles</option>
-            <option>Sports</option>
-            <option>Other</option>
-          </select>
-        </div>
-        <div style="display:flex;gap:var(--sp-3);margin-top:var(--sp-2);">
+        <div style="display:flex;gap:var(--sp-3);margin-top:var(--sp-2)">
           <button type="button" class="btn btn-ghost btn-full" onclick="closeModal('modal-offer')">Cancel</button>
-          <button type="submit" class="btn btn-primary btn-full">&#10003; Submit Offer</button>
+          <button type="submit" class="btn btn-primary btn-full" id="btn-offer-submit">&#10003; Submit Offer</button>
         </div>
       </div>
     </form>
   </div>
 </div>
+{% endif %}
+{% endblock %}
 
-<!-- ═══════════════════════════════════════════════════════════
-     NEW LISTING MODAL
-═══════════════════════════════════════════════════════════ -->
-<div class="modal-overlay" id="modal-post" onclick="closeOnBackdrop(event,'modal-post')">
-  <div class="modal">
-    <div class="modal__header">
-      <div>
-        <h3>Create a New Listing</h3>
-        <p style="font-size:0.82rem;color:var(--clr-muted);margin-top:4px;">
-          Post an item to the Trading Board
-        </p>
-      </div>
-      <button class="modal__close" onclick="closeModal('modal-post')">&times;</button>
-    </div>
-    <form onsubmit="submitPost(event)">
-      <div style="display:flex;flex-direction:column;gap:var(--sp-4);">
-        <div class="form-group">
-          <label class="form-label">Item Title</label>
-          <input class="form-input" type="text" placeholder="e.g. Fender Telecaster 1972" required />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Category</label>
-          <select class="form-select">
-            <option value="">— Select a category —</option>
-            <option>Electronics</option>
-            <option>Music</option>
-            <option>Books</option>
-            <option>Collectibles</option>
-            <option>Sports</option>
-            <option>Other</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Description</label>
-          <textarea class="form-textarea" placeholder="Describe your item — condition, age, what comes with it, and what you're looking for in return…" required></textarea>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Looking to trade for (optional)</label>
-          <input class="form-input" type="text" placeholder="e.g. Audio equipment, vintage cameras…" />
-        </div>
-        <div style="display:flex;gap:var(--sp-3);margin-top:var(--sp-2);">
-          <button type="button" class="btn btn-ghost btn-full" onclick="closeModal('modal-post')">Cancel</button>
-          <button type="submit" class="btn btn-primary btn-full">&#43; Post Listing</button>
-        </div>
-      </div>
-    </form>
-  </div>
-</div>
+{% block scripts %}
+<script>
+function openOffer(title, postId) {
+  document.getElementById('offer-target-title').textContent = title;
+  document.getElementById('offer-post-id').value = postId;
+  openModal('modal-offer');
+}
 
-<!-- ═══════════════════════════════════════════════════════════
-     TOAST AREA
-═══════════════════════════════════════════════════════════ -->
-<div class="toast-area" id="toast-area"></div>
+const formOffer = document.getElementById('form-offer');
+if (formOffer) {
+  formOffer.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btn-offer-submit');
+    btn.innerHTML = '<span class="spinner"></span> Submitting…';
+    btn.disabled = true;
 
-<!-- ═══════════════════════════════════════════════════════════
-     FOOTER
-═══════════════════════════════════════════════════════════ -->
-<footer class="footer">
-  <div class="container">
-    <p>TradePost &mdash; Phase 4 Static UI &nbsp;|&nbsp;
-      <a href="dashboard.html">My Negotiations</a> &nbsp;|&nbsp;
-      <a href="#">API Docs</a>
-    </p>
-  </div>
-</footer>
+    const postId  = parseInt(document.getElementById('offer-post-id').value);
+    const details = document.getElementById('offer-details').value;
 
-<!-- ═══════════════════════════════════════════════════════════
-     STATIC JS — filter, sort, modal, toast (no framework)
-═══════════════════════════════════════════════════════════ -->
-<script src="../static/js/app.js"></script>
-</body>
-</html>
+    const resp = await fetch('/api/offers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + APP.token },
+      body: JSON.stringify({ post_id: postId, offered_item_details: details })
+    });
+    const data = await resp.json();
+
+    if (resp.ok) {
+      closeModal('modal-offer');
+      showToast('Offer submitted! Awaiting the post owner.', 'success');
+      formOffer.reset();
+    } else {
+      showToast(data.error || 'Failed to submit offer.', 'error');
+    }
+    btn.innerHTML = '&#10003; Submit Offer'; btn.disabled = false;
+  });
+}
+
+const formPost = document.getElementById('form-new-post');
+if (formPost) {
+  formPost.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btn-post-submit');
+    btn.innerHTML = '<span class="spinner"></span> Posting…'; btn.disabled = true;
+
+    const fd = new FormData(formPost);
+    const resp = await fetch('/api/posts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + APP.token },
+      body: JSON.stringify({ title: fd.get('title'), description: fd.get('description') })
+    });
+    const data = await resp.json();
+
+    if (resp.ok) {
+      closeModal('modal-post');
+      showToast('Listing posted!', 'success');
+      setTimeout(() => location.reload(), 800);
+    } else {
+      showToast(data.error || 'Failed to post listing.', 'error');
+    }
+    btn.innerHTML = '+ Post Listing'; btn.disabled = false;
+  });
+}
+</script>
+{% endblock %}

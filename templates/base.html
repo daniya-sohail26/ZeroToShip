@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}TradePost{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="container navbar__inner">
+    <a href="{{ url_for('pages.marketplace') }}" class="navbar__logo">
+      <div class="logo-mark">T</div>
+      <span>Trade</span>Post
+    </a>
+    <ul class="navbar__links">
+      <li><a href="{{ url_for('pages.marketplace') }}" {% if request.endpoint == 'pages.marketplace' %}class="active"{% endif %}>Marketplace</a></li>
+      {% if user %}
+      <li><a href="{{ url_for('pages.dashboard') }}" {% if request.endpoint == 'pages.dashboard' %}class="active"{% endif %}>My Negotiations</a></li>
+      {% endif %}
+    </ul>
+    <div class="navbar__actions">
+      {% if user %}
+        <a href="{{ url_for('pages.dashboard') }}" class="btn btn-ghost btn-sm">Dashboard</a>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-post')">+ New Listing</button>
+        <div class="avatar" title="{{ user.username }}">{{ user.username[0].upper() }}</div>
+        <a href="{{ url_for('pages.logout') }}" class="btn btn-ghost btn-sm" style="color:var(--clr-danger);">Logout</a>
+      {% else %}
+        <a href="{{ url_for('pages.login_page') }}" class="btn btn-ghost btn-sm">Log In</a>
+        <a href="{{ url_for('pages.register_page') }}" class="btn btn-primary btn-sm">Get Started</a>
+      {% endif %}
+    </div>
+  </div>
+</nav>
+
+{% block content %}{% endblock %}
+
+<!-- ── New Listing Modal (only when logged in) ── -->
+{% if user %}
+<div class="modal-overlay" id="modal-post" onclick="closeOnBackdrop(event,'modal-post')">
+  <div class="modal">
+    <div class="modal__header">
+      <div><h3>Create a New Listing</h3><p style="font-size:.82rem;color:var(--clr-muted);margin-top:4px">Post an item to the Trading Board</p></div>
+      <button class="modal__close" onclick="closeModal('modal-post')">&times;</button>
+    </div>
+    <form id="form-new-post">
+      <div style="display:flex;flex-direction:column;gap:var(--sp-4)">
+        <div class="form-group">
+          <label class="form-label">Item Title</label>
+          <input class="form-input" name="title" placeholder="e.g. Fender Telecaster 1972" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea class="form-textarea" name="description" placeholder="Describe condition, age, accessories, and what you want in return…" required></textarea>
+        </div>
+        <div style="display:flex;gap:var(--sp-3);margin-top:var(--sp-2)">
+          <button type="button" class="btn btn-ghost btn-full" onclick="closeModal('modal-post')">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-full" id="btn-post-submit">+ Post Listing</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<div class="toast-area" id="toast-area"></div>
+
+<footer class="footer">
+  <div class="container">
+    <p>TradePost &mdash; Peer-to-Peer Barter Exchange &nbsp;|&nbsp;
+      <a href="{{ url_for('pages.marketplace') }}">Marketplace</a>
+      {% if user %}&nbsp;|&nbsp;<a href="{{ url_for('pages.dashboard') }}">My Negotiations</a>{% endif %}
+    </p>
+  </div>
+</footer>
+
+<script>
+  // Inject server-side data for JS
+  const APP = {
+    token: localStorage.getItem('tp_token') || '',
+    userId: parseInt(localStorage.getItem('tp_user_id') || '0'),
+    username: localStorage.getItem('tp_username') || '',
+    loggedIn: {{ 'true' if user else 'false' }},
+  };
+</script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

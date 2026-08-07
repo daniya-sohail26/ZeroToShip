@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TradePost — Create Account</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-card__logo">
+      <div class="logo-mark">T</div>
+      <h2 style="margin-top:var(--sp-2)">Create your account</h2>
+      <p style="color:var(--clr-muted);font-size:.9rem;margin-top:4px">Join the TradePost barter network</p>
+    </div>
+
+    <form id="form-register" style="display:flex;flex-direction:column;gap:var(--sp-4)">
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input class="form-input" id="reg-username" type="text" placeholder="your_username" required minlength="3" autocomplete="username"/>
+        <span class="form-hint">At least 3 characters</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" id="reg-password" type="password" placeholder="••••••••" required minlength="6" autocomplete="new-password"/>
+        <span class="form-hint">At least 6 characters</span>
+      </div>
+      <p class="form-error" id="reg-error"></p>
+      <button type="submit" class="btn btn-primary btn-full" id="btn-register" style="margin-top:var(--sp-2)">
+        Create Account
+      </button>
+    </form>
+
+    <div class="auth-divider">or</div>
+    <p style="text-align:center;font-size:.875rem;color:var(--clr-muted)">
+      Already have an account? <a href="{{ url_for('pages.login_page') }}">Log in</a>
+    </p>
+  </div>
+</div>
+
+<div class="toast-area" id="toast-area"></div>
+<script>
+  const APP = { token: localStorage.getItem('tp_token')||'', loggedIn: false };
+</script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script>
+document.getElementById('form-register').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('btn-register');
+  const errEl = document.getElementById('reg-error');
+  errEl.classList.remove('show');
+  btn.innerHTML = '<span class="spinner"></span> Creating…';
+  btn.disabled = true;
+
+  const resp = await fetch('/auth/register', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      username: document.getElementById('reg-username').value,
+      password: document.getElementById('reg-password').value,
+    })
+  });
+  const data = await resp.json();
+
+  if (resp.ok) {
+    localStorage.setItem('tp_token',    data.token);
+    localStorage.setItem('tp_user_id',  data.user.user_id);
+    localStorage.setItem('tp_username', data.user.username);
+    document.cookie = `tp_token=${data.token}; path=/; SameSite=Lax`;
+    window.location.href = '/';
+  } else {
+    errEl.textContent = data.error || 'Registration failed.';
+    errEl.classList.add('show');
+    btn.innerHTML = 'Create Account';
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

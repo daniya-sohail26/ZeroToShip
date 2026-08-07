@@ -1,187 +1,89 @@
 /**
- * TradePost — Phase 4 Static UI
- * Shared JavaScript: modals, toasts, marketplace filter/sort, dashboard tabs.
- * No frameworks. All data is static mock.
+ * TradePost — Phase 5 Live JS
+ * All API calls use fetch() with the JWT from localStorage.
+ * No hardcoded mock data remains.
  */
-
 'use strict';
 
-/* ══════════════════════════════════════════════════════════
-   MODAL HELPERS
-══════════════════════════════════════════════════════════ */
-
-function openModal(id) {
-  const el = document.getElementById(id);
-  if (el) el.classList.add('open');
-}
-
-function closeModal(id) {
-  const el = document.getElementById(id);
-  if (el) el.classList.remove('open');
-}
-
-function closeOnBackdrop(event, id) {
-  if (event.target === event.currentTarget) closeModal(id);
-}
-
-// Close any open modal on Escape
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    document.querySelectorAll('.modal-overlay.open')
-      .forEach(el => el.classList.remove('open'));
-  }
+/* ── Modal helpers ──────────────────────────────────────────── */
+function openModal(id)  { document.getElementById(id)?.classList.add('open') }
+function closeModal(id) { document.getElementById(id)?.classList.remove('open') }
+function closeOnBackdrop(e, id) { if (e.target === e.currentTarget) closeModal(id) }
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape')
+    document.querySelectorAll('.modal-overlay.open').forEach(el => el.classList.remove('open'));
 });
 
-/* ══════════════════════════════════════════════════════════
-   TOAST NOTIFICATIONS
-══════════════════════════════════════════════════════════ */
-
-function showToast(message, type = 'info', duration = 3500) {
+/* ── Toast ──────────────────────────────────────────────────── */
+function showToast(msg, type = 'info', ms = 3800) {
   const area = document.getElementById('toast-area');
   if (!area) return;
-
   const icons = { success: '✓', error: '✕', info: 'ℹ' };
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  toast.innerHTML = `<span>${icons[type] || 'ℹ'}</span><span>${message}</span>`;
-  area.appendChild(toast);
-
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<span style="font-size:1rem">${icons[type]||'ℹ'}</span><span>${msg}</span>`;
+  area.appendChild(t);
   setTimeout(() => {
-    toast.style.transition = 'opacity .3s, transform .3s';
-    toast.style.opacity = '0';
-    toast.style.transform = 'translateX(100%)';
-    setTimeout(() => toast.remove(), 320);
-  }, duration);
+    t.style.transition = 'opacity .3s,transform .3s';
+    t.style.opacity = '0'; t.style.transform = 'translateX(110%)';
+    setTimeout(() => t.remove(), 320);
+  }, ms);
 }
 
-/* ══════════════════════════════════════════════════════════
-   MARKETPLACE — FILTER & SORT
-══════════════════════════════════════════════════════════ */
+/* ── Marketplace filter / sort ──────────────────────────────── */
+let _activeFilter = 'All';
 
-let activeFilter = 'All';
-
-function setFilter(category, chipEl) {
-  activeFilter = category;
+function setFilter(status, chip) {
+  _activeFilter = status;
   document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-  if (chipEl) chipEl.classList.add('active');
-  applyFilters();
+  chip?.classList.add('active');
+  _applyFilters();
 }
 
-function filterCards() { applyFilters(); }
+function filterCards() { _applyFilters(); }
 
-function applyFilters() {
-  const query = (document.getElementById('search-input')?.value || '').toLowerCase();
-  const cards  = document.querySelectorAll('#marketplace-grid .item-card');
-
-  cards.forEach(card => {
-    const category = card.dataset.category || '';
-    const title    = (card.dataset.title || '').toLowerCase();
-    const matchCat = activeFilter === 'All' || category === activeFilter;
-    const matchQ   = !query || title.includes(query);
-    card.closest('.card').style.display = (matchCat && matchQ) ? '' : 'none';
+function _applyFilters() {
+  const q = (document.getElementById('search-input')?.value || '').toLowerCase();
+  document.querySelectorAll('#marketplace-grid .item-card').forEach(card => {
+    const status = card.dataset.status || '';
+    const title  = card.dataset.title  || '';
+    const matchS = _activeFilter === 'All' || status === _activeFilter;
+    const matchQ = !q || title.includes(q);
+    card.closest('.card').style.display = matchS && matchQ ? '' : 'none';
   });
 }
 
 function sortCards(order) {
-  const grid  = document.getElementById('marketplace-grid');
+  const grid = document.getElementById('marketplace-grid');
   if (!grid) return;
   const cards = [...grid.querySelectorAll('.card')];
-
   cards.sort((a, b) => {
-    const ia = a.querySelector('.item-card');
-    const ib = b.querySelector('.item-card');
-    if (order === 'alpha') {
-      return (ia?.dataset.title || '').localeCompare(ib?.dataset.title || '');
-    }
-    if (order === 'offers') {
-      return parseInt(ib?.dataset.offers || 0) - parseInt(ia?.dataset.offers || 0);
-    }
-    return 0; // newest — keep DOM order
+    const ia = a.querySelector('.item-card'), ib = b.querySelector('.item-card');
+    if (order === 'alpha')  return (ia?.dataset.title||'').localeCompare(ib?.dataset.title||'');
+    if (order === 'offers') return parseInt(ib?.dataset.offers||0) - parseInt(ia?.dataset.offers||0);
+    if (order === 'oldest') return parseInt(ia?.dataset.offers||0) - parseInt(ib?.dataset.offers||0);
+    return 0;
   });
-
   cards.forEach(c => grid.appendChild(c));
 }
 
-/* ══════════════════════════════════════════════════════════
-   MARKETPLACE — OFFER MODAL
-══════════════════════════════════════════════════════════ */
-
-function openOffer(title, emoji, postId) {
-  const titleEl = document.getElementById('offer-target-title');
-  const emojiEl = document.getElementById('offer-emoji');
-  if (titleEl) titleEl.textContent = title;
-  if (emojiEl) emojiEl.innerHTML   = emoji;
-
-  // store postId on the form for submission
-  const form = document.querySelector('#modal-offer form');
-  if (form) form.dataset.postId = postId;
-
-  openModal('modal-offer');
-}
-
-function submitOffer(e) {
-  e.preventDefault();
-  closeModal('modal-offer');
-  showToast('Offer submitted! Waiting for the post owner to respond.', 'success');
-  e.target.reset();
-}
-
-function submitPost(e) {
-  e.preventDefault();
-  closeModal('modal-post');
-  showToast('Listing posted to the Trading Board!', 'success');
-  e.target.reset();
-}
-
-/* ══════════════════════════════════════════════════════════
-   DASHBOARD — TAB SWITCHING
-══════════════════════════════════════════════════════════ */
-
+/* ── Dashboard tab switching ────────────────────────────────── */
 function switchTab(state, tabEl) {
-  // update tab styles
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  if (tabEl) tabEl.classList.add('active');
-
-  // show/hide negotiation cards
-  const cards = document.querySelectorAll('.negotiation-card');
-  cards.forEach(card => {
-    const cardState = card.dataset.state;
+  tabEl?.classList.add('active');
+  document.querySelectorAll('.negotiation-card').forEach(card => {
+    const s = card.dataset.state;
     const show = state === 'all'
-      || cardState === state
-      || (state === 'closed' && cardState === 'closed');
+      || s === state
+      || (state === 'closed' && (s === 'accepted' || s === 'declined'));
     card.style.display = show ? '' : 'none';
   });
 }
 
-/* ══════════════════════════════════════════════════════════
-   DASHBOARD — COUNTER MODAL
-══════════════════════════════════════════════════════════ */
-
-function openCounter(offerId, postTitle) {
-  const titleEl = document.getElementById('counter-post-title');
-  if (titleEl) titleEl.textContent = postTitle;
-
-  const form = document.querySelector('#modal-counter form');
-  if (form) form.dataset.offerId = offerId;
-
-  openModal('modal-counter');
-}
-
-function submitCounter(e) {
-  e.preventDefault();
-  closeModal('modal-counter');
-  showToast('Counter-offer sent. Turn flipped to your peer.', 'success');
-  e.target.reset();
-}
-
-/* ══════════════════════════════════════════════════════════
-   DASHBOARD — ACCEPT / DECLINE ACTIONS
-══════════════════════════════════════════════════════════ */
-
-function handleAction(action, offerId) {
-  if (action === 'accept') {
-    showToast(`Offer #${offerId} accepted! All rival offers auto-declined.`, 'success');
-  } else if (action === 'decline') {
-    showToast(`Offer #${offerId} declined.`, 'error');
-  }
+/* ── Auth helpers ───────────────────────────────────────────── */
+function _authHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer ' + (APP?.token || localStorage.getItem('tp_token') || ''),
+  };
 }

@@ -1,458 +1,240 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TradePost — My Negotiations</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../static/css/style.css" />
-  <style>
-    .tab-bar {
-      display: flex;
-      gap: 0;
-      border-bottom: 1px solid var(--clr-border);
-      margin-bottom: var(--sp-8);
-    }
-    .tab {
-      padding: var(--sp-3) var(--sp-6);
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: var(--clr-muted);
-      cursor: pointer;
-      border: none;
-      background: none;
-      font-family: var(--font-sans);
-      border-bottom: 2px solid transparent;
-      margin-bottom: -1px;
-      transition: all var(--transition);
-      display: flex;
-      align-items: center;
-      gap: var(--sp-2);
-    }
-    .tab:hover { color: var(--clr-text); }
-    .tab.active { color: var(--clr-primary); border-bottom-color: var(--clr-primary); }
-    .tab-panel { display: none; }
-    .tab-panel.active { display: block; }
-    .peer-row {
-      display: flex;
-      align-items: center;
-      gap: var(--sp-3);
-      padding: var(--sp-3) var(--sp-4);
-      background: var(--clr-surface-2);
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--clr-border);
-    }
-    .peer-row__name { font-weight: 600; font-size: 0.875rem; flex:1; }
-    .history-bubble {
-      padding: var(--sp-3) var(--sp-4);
-      border-radius: var(--radius-md);
-      font-size: 0.875rem;
-      line-height: 1.5;
-      max-width: 85%;
-    }
-    .history-bubble.sent {
-      background: rgba(79,142,247,.12);
-      border: 1px solid rgba(79,142,247,.25);
-      align-self: flex-end;
-      margin-left: auto;
-    }
-    .history-bubble.recv {
-      background: var(--clr-surface-2);
-      border: 1px solid var(--clr-border);
-    }
-    .history-bubble .bubble-label {
-      font-size: 0.68rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      margin-bottom: 4px;
-      color: var(--clr-muted);
-    }
-    .bubble-thread {
-      display: flex;
-      flex-direction: column;
-      gap: var(--sp-3);
-      padding: var(--sp-4);
-      background: var(--clr-surface-2);
-      border: 1px solid var(--clr-border);
-      border-radius: var(--radius-md);
-    }
-  </style>
-</head>
-<body>
+{% extends "base.html" %}
+{% block title %}TradePost — My Negotiations{% endblock %}
 
-<!-- ═══════════════════════════════════════════════════════════
-     NAVBAR
-═══════════════════════════════════════════════════════════ -->
-<nav class="navbar">
-  <div class="container navbar__inner">
-    <a href="index.html" class="navbar__logo">&#9654;&nbsp;<span>Trade</span>Post</a>
-    <ul class="navbar__links">
-      <li><a href="index.html">Marketplace</a></li>
-      <li><a href="dashboard.html" class="active">My Negotiations</a></li>
-    </ul>
-    <div class="navbar__actions">
-      <a href="index.html" class="btn btn-ghost btn-sm">&#128722; Browse Listings</a>
-      <div class="avatar" title="alice">A</div>
-    </div>
-  </div>
-</nav>
+{% block head %}
+<style>
+.tab-bar{display:flex;gap:0;border-bottom:1px solid var(--clr-border);margin-bottom:var(--sp-8)}
+.tab{padding:var(--sp-3) var(--sp-5);font-size:.875rem;font-weight:600;color:var(--clr-muted);cursor:pointer;border:none;background:none;font-family:var(--font-sans);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all var(--transition);display:flex;align-items:center;gap:var(--sp-2)}
+.tab:hover{color:var(--clr-text)}.tab.active{color:var(--clr-primary);border-bottom-color:var(--clr-primary)}
+.bubble-thread{display:flex;flex-direction:column;gap:var(--sp-3);padding:var(--sp-4);background:rgba(255,255,255,.02);border:1px solid var(--clr-border);border-radius:var(--radius-md)}
+.history-bubble{padding:var(--sp-3) var(--sp-4);border-radius:var(--radius-md);font-size:.875rem;line-height:1.5;max-width:88%}
+.history-bubble.sent{background:rgba(91,156,246,.1);border:1px solid rgba(91,156,246,.2);align-self:flex-end;margin-left:auto}
+.history-bubble.recv{background:rgba(255,255,255,.04);border:1px solid var(--clr-border)}
+.bubble-label{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;margin-bottom:4px;color:var(--clr-muted)}
+.peer-row{display:flex;align-items:center;gap:var(--sp-3);padding:var(--sp-3) var(--sp-4);background:rgba(255,255,255,.03);border-radius:var(--radius-sm);border:1px solid var(--clr-border)}
+.peer-row__name{font-weight:600;font-size:.875rem;flex:1}
+</style>
+{% endblock %}
 
-<!-- ═══════════════════════════════════════════════════════════
-     PAGE HEADER
-═══════════════════════════════════════════════════════════ -->
-<section style="padding: var(--sp-12) 0 var(--sp-6); border-bottom: 1px solid var(--clr-border);">
+{% block content %}
+<!-- Page header -->
+<section style="padding:var(--sp-12) 0 var(--sp-6);border-bottom:1px solid var(--clr-border)">
   <div class="container">
-    <div class="section-header" style="margin-bottom:0;">
+    <div class="section-header" style="margin-bottom:0">
       <div class="section-title">
         <span class="section-kicker">&#128203; Active Trades</span>
         <h1>Negotiation Dashboard</h1>
-        <p style="color:var(--clr-muted);font-size:0.9rem;margin-top:var(--sp-2);">
-          Track every live discussion, respond to counter-offers, and close deals.
-        </p>
+        <p style="color:var(--clr-muted);font-size:.9rem;margin-top:var(--sp-2)">Track every live discussion and close deals.</p>
       </div>
       <div class="flex gap-3 wrap items-center">
-        <span class="badge badge-your-turn"><span class="badge-dot"></span> 2 Need Action</span>
-        <span class="badge badge-pending">3 Active</span>
-        <span class="badge badge-accepted-glow">1 Closed</span>
+        {% if need_action > 0 %}<span class="badge badge-your-turn"><span class="badge-dot"></span> {{ need_action }} Need Action</span>{% endif %}
+        {% if waiting > 0 %}<span class="badge badge-waiting"><span class="badge-dot"></span> {{ waiting }} Waiting</span>{% endif %}
+        {% if completed > 0 %}<span class="badge badge-accepted-glow">{{ completed }} Closed</span>{% endif %}
       </div>
     </div>
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════════
-     MAIN DASHBOARD
-═══════════════════════════════════════════════════════════ -->
 <section class="section">
   <div class="container">
     <div class="dashboard-layout">
 
-      <!-- ── LEFT: Negotiations list ─────────────────────── -->
+      <!-- Left: negotiations -->
       <div>
-
-        <!-- Tab bar -->
         <div class="tab-bar">
-          <button class="tab active" onclick="switchTab('all',this)">
-            All <span class="badge badge-pending" style="font-size:.65rem;padding:1px 7px;">4</span>
-          </button>
-          <button class="tab" onclick="switchTab('your-turn',this)">
-            Your Turn <span class="badge badge-your-turn" style="font-size:.65rem;padding:1px 7px;">2</span>
-          </button>
-          <button class="tab" onclick="switchTab('waiting',this)">
-            Waiting
-            <span class="badge badge-waiting" style="font-size:.65rem;padding:1px 7px;">1</span>
-          </button>
+          <button class="tab active" onclick="switchTab('all',this)">All <span class="badge badge-pending" style="font-size:.62rem;padding:1px 7px">{{ total }}</span></button>
+          <button class="tab" onclick="switchTab('your-turn',this)">Your Turn <span class="badge badge-your-turn" style="font-size:.62rem;padding:1px 7px">{{ need_action }}</span></button>
+          <button class="tab" onclick="switchTab('waiting',this)">Waiting <span class="badge badge-waiting" style="font-size:.62rem;padding:1px 7px">{{ waiting }}</span></button>
           <button class="tab" onclick="switchTab('closed',this)">Closed</button>
         </div>
 
         <div class="negotiation-list" id="negotiation-list">
-
-          <!-- ──────────────────────────────────────────────────
-               CARD 1 — YOUR TURN (Countered)
-          ────────────────────────────────────────────────── -->
-          <div class="negotiation-card your-turn" data-state="your-turn">
-            <div class="negotiation-card__header">
-              <div>
-                <p class="negotiation-card__title">Vintage Korg MS-20 Synthesizer</p>
-                <p class="negotiation-card__sub">Offer #3 &nbsp;·&nbsp; Post by <strong>bob_trades</strong></p>
+          {% if my_offers %}
+            {% for item in my_offers %}
+            {% set o = item.offer %}
+            {% set p = item.post %}
+            <div class="negotiation-card {{ item.state }}" data-state="{{ item.state }}" id="nc-{{ o.offer_id }}">
+              <div class="negotiation-card__header">
+                <div>
+                  <p class="negotiation-card__title">{{ p.title }}</p>
+                  <p class="negotiation-card__sub">Offer #{{ o.offer_id }} &nbsp;·&nbsp; Peer: <strong>{{ item.peer }}</strong></p>
+                </div>
+                {% if item.state == 'your-turn' %}
+                  <span class="badge badge-your-turn"><span class="badge-dot"></span> Your Turn</span>
+                {% elif item.state == 'waiting' %}
+                  <span class="badge badge-waiting"><span class="badge-dot"></span> Waiting for Peer</span>
+                {% elif item.state == 'accepted' %}
+                  <span class="badge badge-accepted-glow">&#10003; Deal Accepted</span>
+                {% else %}
+                  <span class="badge badge-declined">Declined</span>
+                {% endif %}
               </div>
-              <span class="badge badge-your-turn">
-                <span class="badge-dot"></span> Your Turn
-              </span>
-            </div>
 
-            <!-- Offer thread -->
-            <div class="bubble-thread">
-              <div class="history-bubble recv">
-                <p class="bubble-label">&#128100; bob_trades — Initial Offer</p>
-                Roland TR-808 drum machine, mint condition. All pads working, recently serviced.
+              <div class="negotiation-card__body">
+                <p class="negotiation-card__body-label">&#128257; Current Offer</p>
+                <p>{{ o.offered_item_details }}</p>
               </div>
-              <div class="history-bubble sent">
-                <p class="bubble-label">&#128100; You — Counter</p>
-                Interested, but I'd need you to add the original power supply. Can you do that?
-              </div>
-              <div class="history-bubble recv">
-                <p class="bubble-label">&#128100; bob_trades — Counter</p>
-                I can add the PSU + a set of patch cables. That's my final counter.
-              </div>
-            </div>
 
-            <div class="negotiation-card__body">
-              <p class="negotiation-card__body-label">&#128257; Current Offer on the Table</p>
-              <p>Roland TR-808 + original PSU + patch cables</p>
+              <div class="negotiation-card__actions">
+                {% if item.is_my_turn and o.status in ['Pending','Countered'] %}
+                  <button class="btn btn-success btn-sm" onclick="doAccept({{ o.offer_id }})">&#10003; Accept</button>
+                  <button class="btn btn-ghost btn-sm" onclick="openCounter({{ o.offer_id }}, '{{ p.title|replace("'","\\'")|e }}')">&#8635; Counter</button>
+                  <button class="btn btn-danger btn-sm" onclick="doDecline({{ o.offer_id }})">&#10005; Decline</button>
+                {% elif o.status == 'Accepted' %}
+                  <span class="badge badge-accepted-glow" style="font-size:.8rem;padding:.3rem .8rem">&#10003; Completed</span>
+                {% elif o.status == 'Declined' %}
+                  <span class="badge badge-declined" style="font-size:.8rem;padding:.3rem .8rem">Declined</span>
+                {% else %}
+                  <button class="btn btn-ghost btn-sm" disabled>&#128336; Awaiting Peer</button>
+                {% endif %}
+              </div>
             </div>
-
-            <div class="negotiation-card__actions">
-              <button class="btn btn-primary btn-sm" onclick="handleAction('accept',1)">&#10003; Accept Deal</button>
-              <button class="btn btn-ghost btn-sm" onclick="openCounter(1, 'Vintage Korg MS-20 Synthesizer')">&#8635; Counter</button>
-              <button class="btn btn-danger btn-sm" onclick="handleAction('decline',1)">&#10005; Decline</button>
-            </div>
+            {% endfor %}
+          {% else %}
+          <div class="empty-state">
+            <div class="empty-state__icon">&#128203;</div>
+            <h3>No negotiations yet</h3>
+            <p>Head to the Marketplace and make your first offer.</p>
+            <a href="{{ url_for('pages.marketplace') }}" class="btn btn-primary" style="margin-top:var(--sp-6)">Browse Listings</a>
           </div>
+          {% endif %}
+        </div>
+      </div>
 
-          <!-- ──────────────────────────────────────────────────
-               CARD 2 — YOUR TURN (Pending, first offer)
-          ────────────────────────────────────────────────── -->
-          <div class="negotiation-card your-turn" data-state="your-turn">
-            <div class="negotiation-card__header">
-              <div>
-                <p class="negotiation-card__title">1st Edition Pokémon Card Set</p>
-                <p class="negotiation-card__sub">Offer #7 &nbsp;·&nbsp; Post by <strong>dan_collects</strong></p>
-              </div>
-              <span class="badge badge-your-turn">
-                <span class="badge-dot"></span> Your Turn
-              </span>
-            </div>
-
-            <div class="bubble-thread">
-              <div class="history-bubble recv">
-                <p class="bubble-label">&#128100; dan_collects — Initial Offer</p>
-                Complete Lego Technic Bugatti Chiron set, sealed in box. Retail $450. Willing to trade straight up.
-              </div>
-            </div>
-
-            <div class="negotiation-card__body">
-              <p class="negotiation-card__body-label">&#128257; Current Offer on the Table</p>
-              <p>Lego Technic Bugatti Chiron — sealed, retail $450</p>
-            </div>
-
-            <div class="negotiation-card__actions">
-              <button class="btn btn-primary btn-sm" onclick="handleAction('accept',7)">&#10003; Accept Deal</button>
-              <button class="btn btn-ghost btn-sm" onclick="openCounter(7, '1st Edition Pokémon Card Set')">&#8635; Counter</button>
-              <button class="btn btn-danger btn-sm" onclick="handleAction('decline',7)">&#10005; Decline</button>
-            </div>
-          </div>
-
-          <!-- ──────────────────────────────────────────────────
-               CARD 3 — WAITING FOR PEER
-          ────────────────────────────────────────────────── -->
-          <div class="negotiation-card waiting" data-state="waiting">
-            <div class="negotiation-card__header">
-              <div>
-                <p class="negotiation-card__title">Sony A7III Mirrorless Camera</p>
-                <p class="negotiation-card__sub">Offer #2 &nbsp;·&nbsp; Post by <strong>carol_snap</strong></p>
-              </div>
-              <span class="badge badge-waiting">
-                <span class="badge-dot"></span> Waiting for Peer
-              </span>
-            </div>
-
-            <div class="bubble-thread">
-              <div class="history-bubble sent">
-                <p class="bubble-label">&#128100; You — Initial Offer</p>
-                DJI Pocket 2 Creator Combo, perfect condition. Less than 3 hours flight time.
-              </div>
-              <div class="history-bubble recv">
-                <p class="bubble-label">&#128100; carol_snap — Counter</p>
-                The Pocket 2 is tempting but I need something closer in value. Can you add accessories?
-              </div>
-              <div class="history-bubble sent">
-                <p class="bubble-label">&#128100; You — Counter</p>
-                Adding the DJI ND filter set and a spare battery. That should close the gap.
-              </div>
-            </div>
-
-            <div class="negotiation-card__body">
-              <p class="negotiation-card__body-label">&#9200; Awaiting carol_snap's Response</p>
-              <p style="color:var(--clr-muted);font-style:italic;">
-                Your counter was sent 2 hours ago. The ball is in their court.
-              </p>
-            </div>
-
-            <div class="negotiation-card__actions">
-              <button class="btn btn-ghost btn-sm" disabled style="opacity:.4;cursor:not-allowed;">
-                &#128336; Awaiting Response
-              </button>
-            </div>
-          </div>
-
-          <!-- ──────────────────────────────────────────────────
-               CARD 4 — ACCEPTED / CLOSED
-          ────────────────────────────────────────────────── -->
-          <div class="negotiation-card accepted" data-state="closed">
-            <div class="negotiation-card__header">
-              <div>
-                <p class="negotiation-card__title">Roland TR-808 Drum Machine</p>
-                <p class="negotiation-card__sub">Offer #1 &nbsp;·&nbsp; Post by <strong>henry_beats</strong></p>
-              </div>
-              <span class="badge badge-accepted-glow">&#10003; Deal Accepted</span>
-            </div>
-
-            <div class="bubble-thread">
-              <div class="history-bubble sent">
-                <p class="bubble-label">&#128100; You — Initial Offer</p>
-                Arturia MiniLab Mk2 + Arturia Analog Lab V license key.
-              </div>
-              <div class="history-bubble recv">
-                <p class="bubble-label">&#128100; henry_beats — Accepted</p>
-                Deal! That's a fair trade. Let's arrange the swap.
-              </div>
-            </div>
-
-            <div class="negotiation-card__body">
-              <p class="negotiation-card__body-label">&#127881; Trade Complete</p>
-              <p>Arturia MiniLab Mk2 + license traded for Roland TR-808 — closed 3 days ago.</p>
-            </div>
-
-            <div class="negotiation-card__actions">
-              <span class="badge badge-accepted-glow" style="font-size:.8rem;padding:.3rem .8rem;">
-                &#10003; Completed
-              </span>
-            </div>
-          </div>
-
-        </div><!-- /negotiation-list -->
-      </div><!-- /left col -->
-
-      <!-- ── RIGHT: Sidebar ──────────────────────────────── -->
+      <!-- Right: sidebar -->
       <aside>
-
-        <!-- Stat cards -->
         <div class="stats-grid">
-          <div class="stat-card">
-            <p class="stat-card__value" style="color:var(--clr-warning);">2</p>
-            <p class="stat-card__label">Need Action</p>
-          </div>
-          <div class="stat-card">
-            <p class="stat-card__value" style="color:var(--clr-danger);">1</p>
-            <p class="stat-card__label">Waiting</p>
-          </div>
-          <div class="stat-card">
-            <p class="stat-card__value" style="color:var(--clr-success);">1</p>
-            <p class="stat-card__label">Completed</p>
-          </div>
-          <div class="stat-card">
-            <p class="stat-card__value">4</p>
-            <p class="stat-card__label">Total Trades</p>
+          <div class="stat-card"><p class="stat-card__value" style="color:var(--clr-warning)">{{ need_action }}</p><p class="stat-card__label">Need Action</p></div>
+          <div class="stat-card"><p class="stat-card__value" style="color:var(--clr-danger)">{{ waiting }}</p><p class="stat-card__label">Waiting</p></div>
+          <div class="stat-card"><p class="stat-card__value" style="color:var(--clr-success)">{{ completed }}</p><p class="stat-card__label">Completed</p></div>
+          <div class="stat-card"><p class="stat-card__value">{{ total }}</p><p class="stat-card__label">Total</p></div>
+        </div>
+
+        <div class="card" style="margin-bottom:var(--sp-6)">
+          <h4 style="margin-bottom:var(--sp-4)">&#128101; Active Peers</h4>
+          <div style="display:flex;flex-direction:column;gap:var(--sp-3)">
+            {% set seen = [] %}
+            {% for item in my_offers %}
+              {% if item.peer not in seen and item.offer.status in ['Pending','Countered'] %}
+                {% set _ = seen.append(item.peer) %}
+                <div class="peer-row">
+                  <div class="avatar" style="width:28px;height:28px;font-size:.68rem">{{ item.peer[0].upper() }}</div>
+                  <p class="peer-row__name">{{ item.peer }}</p>
+                  {% if item.state == 'your-turn' %}
+                    <span class="badge badge-your-turn" style="font-size:.62rem">Your Turn</span>
+                  {% else %}
+                    <span class="badge badge-waiting" style="font-size:.62rem">Waiting</span>
+                  {% endif %}
+                </div>
+              {% endif %}
+            {% else %}
+              <p style="color:var(--clr-muted);font-size:.85rem">No active peers yet.</p>
+            {% endfor %}
           </div>
         </div>
 
-        <!-- Turn timeline -->
-        <div class="card" style="margin-bottom:var(--sp-6);">
-          <h4 style="margin-bottom:var(--sp-4);">&#128336; Recent Activity</h4>
-          <div class="timeline">
-            <div class="timeline-item">
-              <div class="timeline-dot current">&#9654;</div>
-              <div class="timeline-content">
-                <p><strong>bob_trades</strong> countered on Korg MS-20</p>
-                <small>15 minutes ago &nbsp;·&nbsp;
-                  <span class="badge badge-your-turn" style="font-size:.62rem;padding:1px 6px;">Your Turn</span>
-                </small>
-              </div>
-            </div>
-            <div class="timeline-item">
-              <div class="timeline-dot sent">A</div>
-              <div class="timeline-content">
-                <p>You countered on Sony A7III</p>
-                <small>2 hours ago &nbsp;·&nbsp;
-                  <span class="badge badge-waiting" style="font-size:.62rem;padding:1px 6px;">Waiting</span>
-                </small>
-              </div>
-            </div>
-            <div class="timeline-item">
-              <div class="timeline-dot recv">D</div>
-              <div class="timeline-content">
-                <p><strong>dan_collects</strong> placed offer on Pokémon set</p>
-                <small>5 hours ago &nbsp;·&nbsp;
-                  <span class="badge badge-your-turn" style="font-size:.62rem;padding:1px 6px;">Your Turn</span>
-                </small>
-              </div>
-            </div>
-            <div class="timeline-item">
-              <div class="timeline-dot sent">A</div>
-              <div class="timeline-content">
-                <p>Trade with <strong>henry_beats</strong> completed</p>
-                <small>3 days ago &nbsp;·&nbsp;
-                  <span class="badge badge-accepted-glow" style="font-size:.62rem;padding:1px 6px;">&#10003; Done</span>
-                </small>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Quick peer lookup -->
         <div class="card">
-          <h4 style="margin-bottom:var(--sp-4);">&#128101; Active Peers</h4>
-          <div style="display:flex;flex-direction:column;gap:var(--sp-3);">
-            <div class="peer-row">
-              <div class="avatar">B</div>
-              <p class="peer-row__name">bob_trades</p>
-              <span class="badge badge-your-turn" style="font-size:.65rem;">Your Turn</span>
-            </div>
-            <div class="peer-row">
-              <div class="avatar">C</div>
-              <p class="peer-row__name">carol_snap</p>
-              <span class="badge badge-waiting" style="font-size:.65rem;">Waiting</span>
-            </div>
-            <div class="peer-row">
-              <div class="avatar">D</div>
-              <p class="peer-row__name">dan_collects</p>
-              <span class="badge badge-your-turn" style="font-size:.65rem;">Your Turn</span>
-            </div>
-            <div class="peer-row" style="opacity:.5;">
-              <div class="avatar" style="background:var(--clr-surface-2);color:var(--clr-muted);">H</div>
-              <p class="peer-row__name" style="color:var(--clr-muted);">henry_beats</p>
-              <span class="badge badge-accepted-glow" style="font-size:.65rem;">Done</span>
-            </div>
+          <h4 style="margin-bottom:var(--sp-4)">&#128722; Quick Actions</h4>
+          <div style="display:flex;flex-direction:column;gap:var(--sp-3)">
+            <a href="{{ url_for('pages.marketplace') }}" class="btn btn-ghost btn-full">Browse Marketplace</a>
+            <button class="btn btn-primary btn-full" onclick="openModal('modal-post')">+ New Listing</button>
           </div>
         </div>
-
       </aside>
-    </div><!-- /dashboard-layout -->
+    </div>
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════════
-     COUNTER-OFFER MODAL
-═══════════════════════════════════════════════════════════ -->
+<!-- Counter-offer modal -->
 <div class="modal-overlay" id="modal-counter" onclick="closeOnBackdrop(event,'modal-counter')">
   <div class="modal">
     <div class="modal__header">
-      <div>
-        <h3>Send a Counter-Offer</h3>
-        <p style="font-size:.82rem;color:var(--clr-muted);margin-top:4px;">
-          Negotiating: <strong id="counter-post-title">—</strong>
-        </p>
-      </div>
+      <div><h3>Send a Counter-Offer</h3><p style="font-size:.82rem;color:var(--clr-muted);margin-top:4px">Negotiating: <strong id="counter-post-title">—</strong></p></div>
       <button class="modal__close" onclick="closeModal('modal-counter')">&times;</button>
     </div>
-    <form onsubmit="submitCounter(event)">
-      <div style="display:flex;flex-direction:column;gap:var(--sp-4);">
+    <form id="form-counter">
+      <input type="hidden" id="counter-offer-id"/>
+      <div style="display:flex;flex-direction:column;gap:var(--sp-4)">
         <div class="form-group">
           <label class="form-label">Your revised offer</label>
-          <textarea class="form-textarea" id="counter-details" rows="4"
-            placeholder="Describe your updated offer — what you're adding, removing, or changing…" required></textarea>
+          <textarea class="form-textarea" id="counter-details" rows="4" placeholder="Describe your updated offer…" required></textarea>
         </div>
-        <div style="padding:var(--sp-3) var(--sp-4);background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:var(--radius-sm);font-size:.82rem;color:#fbbf24;">
-          &#9888;&#65039; Submitting this will flip the turn to your peer. They must respond next.
+        <div style="padding:var(--sp-3) var(--sp-4);background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:var(--radius-sm);font-size:.82rem;color:#fbbf24">
+          &#9888; Submitting this flips the turn to your peer.
         </div>
-        <div style="display:flex;gap:var(--sp-3);margin-top:var(--sp-2);">
+        <div style="display:flex;gap:var(--sp-3);margin-top:var(--sp-2)">
           <button type="button" class="btn btn-ghost btn-full" onclick="closeModal('modal-counter')">Cancel</button>
-          <button type="submit" class="btn btn-accent btn-full">&#8635; Send Counter</button>
+          <button type="submit" class="btn btn-accent btn-full" id="btn-counter-submit">&#8635; Send Counter</button>
         </div>
       </div>
     </form>
   </div>
 </div>
+{% endblock %}
 
-<!-- ═══════════════════════════════════════════════════════════
-     TOAST AREA
-═══════════════════════════════════════════════════════════ -->
-<div class="toast-area" id="toast-area"></div>
+{% block scripts %}
+<script>
+function openCounter(offerId, title) {
+  document.getElementById('counter-post-title').textContent = title;
+  document.getElementById('counter-offer-id').value = offerId;
+  openModal('modal-counter');
+}
 
-<!-- ═══════════════════════════════════════════════════════════
-     FOOTER
-═══════════════════════════════════════════════════════════ -->
-<footer class="footer">
-  <div class="container">
-    <p>TradePost &mdash; Phase 4 Static UI &nbsp;|&nbsp;
-      <a href="index.html">Marketplace</a> &nbsp;|&nbsp;
-      <a href="#">API Docs</a>
-    </p>
-  </div>
-</footer>
+document.getElementById('form-counter').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('btn-counter-submit');
+  btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true;
 
-<script src="../static/js/app.js"></script>
-</body>
-</html>
+  const offerId = document.getElementById('counter-offer-id').value;
+  const details = document.getElementById('counter-details').value;
+
+  const resp = await fetch(`/api/offers/${offerId}/counter`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + APP.token },
+    body: JSON.stringify({ offered_item_details: details })
+  });
+  const data = await resp.json();
+
+  if (resp.ok) {
+    closeModal('modal-counter');
+    showToast('Counter sent. Turn flipped to your peer.', 'success');
+    setTimeout(() => location.reload(), 900);
+  } else {
+    showToast(data.error || 'Failed.', 'error');
+  }
+  btn.innerHTML = '&#8635; Send Counter'; btn.disabled = false;
+});
+
+async function doAccept(offerId) {
+  if (!confirm('Accept this offer? All rival offers on this post will be auto-declined.')) return;
+  const resp = await fetch(`/api/offers/${offerId}/accept`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + APP.token },
+    body: '{}'
+  });
+  const data = await resp.json();
+  if (resp.ok) {
+    showToast(`Deal accepted! ${data.auto_declined} rival offer(s) auto-declined.`, 'success');
+    setTimeout(() => location.reload(), 1000);
+  } else {
+    showToast(data.error || 'Failed.', 'error');
+  }
+}
+
+async function doDecline(offerId) {
+  if (!confirm('Decline this offer?')) return;
+  const resp = await fetch(`/api/offers/${offerId}/decline`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + APP.token },
+    body: '{}'
+  });
+  const data = await resp.json();
+  if (resp.ok) {
+    showToast('Offer declined.', 'info');
+    setTimeout(() => location.reload(), 900);
+  } else {
+    showToast(data.error || 'Failed.', 'error');
+  }
+}
+</script>
+{% endblock %}

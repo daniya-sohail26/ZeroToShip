@@ -1,112 +1,65 @@
 """
-app.py
-======
-TradePost — Phase 2 server entry point.
+app.py — TradePost Phase 5 (Final)
+===================================
+Application factory wiring all phases into one unified server:
+  - Phase 1/3: TradeStore business logic & flat-file persistence
+  - Phase 2:   JWT auth (register / login)
+  - Phase 3:   REST API endpoints (/api/*)
+  - Phase 4/5: Jinja2 HTML pages served by Flask (/, /dashboard, /login, /register)
 
-Responsibilities
-----------------
-* Bootstrap the Flask application.
-* Load configuration (JWT secret, debug flag) from environment variables
-  with safe defaults for local development.
-* Register the authentication Blueprint (views/auth.py).
-* Provide a /health liveness endpoint so Postman/CI can verify the server
-  is up without needing credentials.
-* Run the development server when executed directly.
-
-Environment variables
----------------------
-    JWT_SECRET   — signing key for JWTs          (default: dev-only fallback)
-    FLASK_DEBUG  — "1" to enable debug/reload    (default: "0")
-    PORT         — port to bind                  (default: 5000)
+Session strategy: JWT stored in localStorage by the browser.
+All page routes use Flask's render_template(); the API routes return JSON.
 """
 
 import os
-from flask import Flask, jsonify
+import jwt
+from flask import Flask, render_template, redirect, url_for, request, jsonify
 
-from views.auth import auth_bp
+from views.auth   import auth_bp
 from views.routes import api_bp
+from views.pages  import pages_bp
 
 
 def create_app() -> Flask:
-    """
-    Application factory.
+    app = Flask(__name__, template_folder="templates", static_folder="static")
 
-    Using a factory function (rather than a module-level app instance) makes
-    the app easy to test and allows multiple configurations to coexist.
-    """
-    app = Flask(__name__)
-
-    # ------------------------------------------------------------------
-    # Configuration
-    # ------------------------------------------------------------------
-
-    # JWT_SECRET must be set to a long random string in production.
-    # The fallback value is intentionally weak to signal misconfiguration.
+    # ── Config ────────────────────────────────────────────────────────
     app.config["JWT_SECRET"] = os.environ.get(
         "JWT_SECRET", "CHANGE_ME_before_deploying_to_production"
     )
-
     app.config["DEBUG"] = os.environ.get("FLASK_DEBUG", "0") == "1"
 
-    # ------------------------------------------------------------------
-    # Blueprint registration
-    # ------------------------------------------------------------------
+    # ── Blueprints ────────────────────────────────────────────────────
+    app.register_blueprint(auth_bp)    # POST /auth/register, /auth/login
+    app.register_blueprint(api_bp)     # /api/posts, /api/offers, …
+    app.register_blueprint(pages_bp)   # GET /, /dashboard, /login, /register
 
-    app.register_blueprint(auth_bp)          # /auth/register, /auth/login
-    app.register_blueprint(api_bp)           # /api/posts, /api/offers, ...
+    # Custom Jinja2 filters
+    app.jinja_env.filters['chr'] = chr
 
-    # ------------------------------------------------------------------
-    # Core routes
-    # ------------------------------------------------------------------
-
-    @app.route("/health", methods=["GET"])
+    # ── Liveness ──────────────────────────────────────────────────────
+    @app.route("/health")
     def health():
-        """
-        Liveness check — no authentication required.
-        Useful for Postman smoke tests and load-balancer health probes.
-        """
-        return jsonify({"status": "ok", "phase": 3}), 200
+        return jsonify({"status": "ok", "phase": 5}), 200
 
-    # ------------------------------------------------------------------
-    # Global error handlers
-    # ------------------------------------------------------------------
-
+    # ── Global error handlers ──────────────────────────────────────────
     @app.errorhandler(404)
     def not_found(e):
-        return jsonify({"error": "Endpoint not found."}), 404
-
-    @app.errorhandler(405)
-    def method_not_allowed(e):
-        return jsonify({"error": "HTTP method not allowed on this endpoint."}), 405
+        # Return JSON for API paths, HTML page otherwise
+        if request.path.startswith("/api/") or request.path.startswith("/auth/"):
+            return jsonify({"error": "Endpoint not found."}), 404
+        return render_template("404.html"), 404
 
     @app.errorhandler(500)
-    def internal_error(e):
+    def server_error(e):
         return jsonify({"error": "Internal server error."}), 500
 
     return app
 
 
-# ----------------------------------------------------------------------
-# Dev-server entry point
-# ----------------------------------------------------------------------
-
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     application = create_app()
-
-    print(f"[TradePost] Phase 3 server starting on http://127.0.0.1:{port}")
-    print(f"[TradePost] Debug mode: {application.config['DEBUG']}")
-    print("[TradePost] Endpoints:")
-    print("  GET  /health")
-    print("  POST /auth/register")
-    print("  POST /auth/login")
-    print("  GET  /api/posts")
-    print("  POST /api/posts")
-    print("  GET  /api/posts/<post_id>")
-    print("  GET  /api/posts/<post_id>/offers")
-    print("  POST /api/offers")
-    print("  PUT  /api/offers/<offer_id>/counter")
-    print("  PUT  /api/offers/<offer_id>/accept")
-    print("  PUT  /api/offers/<offer_id>/decline")
-
+    print(f"\n  TradePost  — Phase 5 Final")
+    print(f"  http://127.0.0.1:{port}\n")
     application.run(host="0.0.0.0", port=port)
