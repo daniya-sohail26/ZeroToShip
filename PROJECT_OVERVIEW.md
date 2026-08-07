@@ -103,11 +103,6 @@ https://github.com/daniya-sohail26/ZeroToShip
 
 > The repository is public and contains the complete project under `Phase 2/`.
 
-### Project Demonstration Video
-
-> 📹 *[Add your Google Drive video link here after recording]*
-
----
 
 ## 📝 Reflection & Future Scope
 
