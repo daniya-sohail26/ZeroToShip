@@ -6,7 +6,10 @@
 <section class="hero">
   <div class="container">
     <div class="hero__kicker">&#127381; Live Barter Exchange</div>
-    <h1 class="hero__title">Trade What You Have<br/>For <span>What You Need</span></h1>
+    <h1 class="hero__title">
+      Trade What You Have<br/>
+      For <span class="gradient-text">What You Need</span>
+    </h1>
     <p class="hero__sub">Browse peer listings, submit counter-bids, and close deals — no money changes hands.</p>
     <div class="hero__cta">
       {% if user %}
@@ -18,9 +21,18 @@
       {% endif %}
     </div>
     <div class="hero__stats">
-      <div><p class="hero__stat-val">{{ posts|length }}</p><p class="hero__stat-label">Total Listings</p></div>
-      <div><p class="hero__stat-val" style="color:var(--clr-success)">{{ open_count }}</p><p class="hero__stat-label">Open</p></div>
-      <div><p class="hero__stat-val" style="color:var(--clr-muted)">{{ closed_count }}</p><p class="hero__stat-label">Closed</p></div>
+      <div>
+        <p class="hero__stat-val" data-count="{{ posts|length }}">{{ posts|length }}</p>
+        <p class="hero__stat-label">Total Listings</p>
+      </div>
+      <div>
+        <p class="hero__stat-val" style="color:var(--clr-success)" data-count="{{ open_count }}">{{ open_count }}</p>
+        <p class="hero__stat-label">Open</p>
+      </div>
+      <div>
+        <p class="hero__stat-val" style="color:var(--clr-muted)" data-count="{{ closed_count }}">{{ closed_count }}</p>
+        <p class="hero__stat-label">Closed</p>
+      </div>
     </div>
   </div>
 </section>
@@ -28,7 +40,7 @@
 <!-- Marketplace -->
 <section class="section">
   <div class="container">
-    <div class="section-header">
+    <div class="section-header reveal-up">
       <div class="section-title">
         <span class="section-kicker">All Listings</span>
         <h2>Trading Board</h2>
@@ -39,10 +51,10 @@
       </div>
     </div>
 
-    <div class="filter-bar">
+    <div class="filter-bar reveal-up stagger-1">
       <div class="filter-bar__search">
         <span class="filter-bar__search-icon">&#128269;</span>
-        <input class="form-input" type="text" placeholder="Search listings…" id="search-input" oninput="filterCards()"/>
+        <input class="form-input" type="text" placeholder="Search listings…" id="search-input" oninput="filterCards()" aria-label="Search listings"/>
       </div>
       <div class="filter-chips">
         <button class="chip active" onclick="setFilter('All',this)">All</button>
@@ -50,7 +62,7 @@
         <button class="chip" onclick="setFilter('Closed',this)">Closed</button>
       </div>
       <div style="margin-left:auto">
-        <select class="form-select" style="width:auto;min-width:140px" onchange="sortCards(this.value)">
+        <select class="form-select" style="width:auto;min-width:150px" onchange="sortCards(this.value)" aria-label="Sort listings">
           <option value="newest">Newest First</option>
           <option value="oldest">Oldest First</option>
           <option value="alpha">A &#8594; Z</option>
@@ -66,7 +78,9 @@
       <article class="card item-card {% if post.status == 'Closed' %}is-closed{% endif %}"
                data-status="{{ post.status }}"
                data-title="{{ post.title|lower }}"
-               data-offers="{{ cnt }}">
+               data-desc="{{ post.description|lower }}"
+               data-offers="{{ cnt }}"
+               data-id="{{ post.post_id }}">
         <div class="item-card__img-wrap">
           {{ ['&#127925;','&#128247;','&#128218;','&#127760;','&#128690;','&#9000;','&#127183;','&#127941;','&#128295;','&#127381;'][(post.post_id - 1) % 10] }}
         </div>
@@ -96,7 +110,7 @@
           </div>
           {% if post.status == 'Open' and user and post.owner_id != user.user_id %}
             <button class="btn btn-primary btn-sm"
-              onclick="openOffer('{{ post.title|replace("'","\\'")|e }}', {{ post.post_id }})">
+              onclick="openOffer('{{ post.title|replace("'","\\'") }}', {{ post.post_id }})">
               Make Offer
             </button>
           {% elif post.status == 'Open' and user and post.owner_id == user.user_id %}
@@ -111,7 +125,7 @@
       {% endfor %}
     </div>
     {% else %}
-    <div class="empty-state">
+    <div class="empty-state reveal-scale">
       <div class="empty-state__icon">&#128722;</div>
       <h3>No listings yet</h3>
       <p>Be the first to post an item to the Trading Board.</p>
@@ -130,21 +144,24 @@
 <div class="modal-overlay" id="modal-offer" onclick="closeOnBackdrop(event,'modal-offer')">
   <div class="modal">
     <div class="modal__header">
-      <div><h3>Submit a Barter Offer</h3><p style="font-size:.82rem;color:var(--clr-muted);margin-top:4px">Describe what you're offering in exchange</p></div>
-      <button class="modal__close" onclick="closeModal('modal-offer')">&times;</button>
+      <div>
+        <h3>Submit a Barter Offer</h3>
+        <p style="font-size:.82rem;color:var(--clr-muted);margin-top:4px">Describe what you're offering in exchange</p>
+      </div>
+      <button class="modal__close" onclick="closeModal('modal-offer')" aria-label="Close">&times;</button>
     </div>
     <div class="offer-target-preview">
-      <span style="font-size:1.6rem">&#128722;</span>
+      <span style="font-size:1.8rem">&#128722;</span>
       <div>
-        <p style="font-size:.7rem;color:var(--clr-muted);text-transform:uppercase;letter-spacing:.08em">Trading for</p>
-        <strong id="offer-target-title" style="font-size:.9rem">—</strong>
+        <p style="font-size:.68rem;color:var(--clr-muted);text-transform:uppercase;letter-spacing:.08em">Trading for</p>
+        <strong id="offer-target-title" style="font-size:.95rem">—</strong>
       </div>
     </div>
     <form id="form-offer">
       <input type="hidden" id="offer-post-id"/>
       <div style="display:flex;flex-direction:column;gap:var(--sp-4)">
         <div class="form-group">
-          <label class="form-label">Your offer details</label>
+          <label class="form-label" for="offer-details">Your offer details</label>
           <textarea class="form-textarea" id="offer-details" rows="4"
             placeholder="Describe your item — condition, accessories, why it's a fair trade…" required></textarea>
         </div>
@@ -180,7 +197,7 @@ if (formOffer) {
 
     const resp = await fetch('/api/offers', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + APP.token },
+      headers: _authHeaders(),
       body: JSON.stringify({ post_id: postId, offered_item_details: details })
     });
     const data = await resp.json();
@@ -206,7 +223,7 @@ if (formPost) {
     const fd = new FormData(formPost);
     const resp = await fetch('/api/posts', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + APP.token },
+      headers: _authHeaders(),
       body: JSON.stringify({ title: fd.get('title'), description: fd.get('description') })
     });
     const data = await resp.json();
@@ -214,7 +231,7 @@ if (formPost) {
     if (resp.ok) {
       closeModal('modal-post');
       showToast('Listing posted!', 'success');
-      setTimeout(() => location.reload(), 800);
+      setTimeout(() => location.reload(), 900);
     } else {
       showToast(data.error || 'Failed to post listing.', 'error');
     }

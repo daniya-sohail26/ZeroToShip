@@ -162,6 +162,11 @@ class TradeStore:
     # Post operations
     # ------------------------------------------------------------------
 
+    def get_all_offers(self) -> list[NegotiationOffer]:
+        """Return every persisted NegotiationOffer."""
+        _, offers = self._load()
+        return offers
+
     def get_all_posts(self, status_filter: str | None = None) -> list[TradePost]:
         """
         Return all posts, optionally filtered by status.

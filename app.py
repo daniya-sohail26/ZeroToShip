@@ -1,14 +1,11 @@
 """
-app.py — TradePost Phase 5 (Final)
-===================================
-Application factory wiring all phases into one unified server:
-  - Phase 1/3: TradeStore business logic & flat-file persistence
-  - Phase 2:   JWT auth (register / login)
-  - Phase 3:   REST API endpoints (/api/*)
-  - Phase 4/5: Jinja2 HTML pages served by Flask (/, /dashboard, /login, /register)
+app.py — TradePost
+==================
+Application factory wiring auth, REST API, and Jinja2 page routes
+into a single Flask server.
 
-Session strategy: JWT stored in localStorage by the browser.
-All page routes use Flask's render_template(); the API routes return JSON.
+Session strategy: JWT stored in localStorage and as `tp_token` cookie.
+Page routes use Flask render_template(); API routes return JSON.
 """
 
 import os
@@ -40,12 +37,11 @@ def create_app() -> Flask:
     # ── Liveness ──────────────────────────────────────────────────────
     @app.route("/health")
     def health():
-        return jsonify({"status": "ok", "phase": 5}), 200
+        return jsonify({"status": "ok"}), 200
 
     # ── Global error handlers ──────────────────────────────────────────
     @app.errorhandler(404)
     def not_found(e):
-        # Return JSON for API paths, HTML page otherwise
         if request.path.startswith("/api/") or request.path.startswith("/auth/"):
             return jsonify({"error": "Endpoint not found."}), 404
         return render_template("404.html"), 404
@@ -60,6 +56,6 @@ def create_app() -> Flask:
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     application = create_app()
-    print(f"\n  TradePost  — Phase 5 Final")
+    print(f"\n  TradePost — Peer-to-Peer Barter Exchange")
     print(f"  http://127.0.0.1:{port}\n")
     application.run(host="0.0.0.0", port=port)

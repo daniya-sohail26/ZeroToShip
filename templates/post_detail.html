@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+{% block title %}TradePost — {{ post.title }}{% endblock %}
+
+{% block content %}
+<!-- Post Header -->
+<section style="padding:var(--sp-12) 0 var(--sp-6);border-bottom:1px solid var(--clr-border)">
+  <div class="container">
+    <div class="section-header reveal-up" style="margin-bottom:0">
+      <div class="section-title">
+        <span class="section-kicker">
+          <a href="{{ url_for('pages.marketplace') }}" style="color:inherit;text-decoration:none">&#8592; Marketplace</a>
+          &nbsp;/&nbsp; Listing #{{ post.post_id }}
+        </span>
+        <h1 style="font-size:clamp(1.6rem,4vw,2.4rem)">{{ post.title }}</h1>
+      </div>
+      <div class="flex gap-3 items-center reveal-up stagger-1">
+        {% if post.status == 'Open' %}
+          <span class="badge badge-open"><span class="badge-dot"></span> Open</span>
+        {% else %}
+          <span class="badge badge-closed">Closed</span>
+        {% endif %}
+        {% set cnt = offer_counts.get(post.post_id, 0) %}
+        {% if cnt > 0 %}
+          <span class="badge badge-pending">{{ cnt }} offer{{ 's' if cnt != 1 }}</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="dashboard-layout">
+
+      <!-- Left: post details + offers -->
+      <div>
+        <!-- Post card -->
+        <div class="card reveal-up" style="margin-bottom:var(--sp-6)">
+          <div style="display:flex;align-items:center;gap:var(--sp-4);margin-bottom:var(--sp-4)">
+            <div style="font-size:3rem;
+              width:72px;height:72px;border-radius:14px;
+              background:linear-gradient(135deg,rgba(91,156,246,.1),rgba(139,92,246,.1));
+              display:flex;align-items:center;justify-content:center;
+              border:1px solid var(--clr-border);flex-shrink:0">
+              {{ ['&#127925;','&#128247;','&#128218;','&#127760;','&#128690;','&#9000;','&#127183;','&#127941;','&#128295;','&#127381;'][(post.post_id - 1) % 10] }}
+            </div>
+            <div>
+              <h2 style="font-size:1.3rem;margin-bottom:var(--sp-1)">{{ post.title }}</h2>
+              <p style="color:var(--clr-muted);font-size:.82rem">Listed by Owner #{{ post.owner_id }}</p>
+            </div>
+          </div>
+          <div style="padding:var(--sp-4);background:rgba(255,255,255,.03);border:1px solid var(--clr-border);border-radius:var(--radius-sm)">
+            <p style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--clr-muted);margin-bottom:var(--sp-2)">Description</p>
+            <p style="line-height:1.7;color:var(--clr-text)">{{ post.description }}</p>
+          </div>
+          {% if post.status == 'Open' and user and post.owner_id != user.user_id %}
+            <div style="margin-top:var(--sp-4)">
+              <button class="btn btn-primary" onclick="openOffer('{{ post.title|replace("'","\\'") }}', {{ post.post_id }})">
+                &#128722; Make an Offer
+              </button>
+            </div>
+          {% elif post.status == 'Open' and user and post.owner_id == user.user_id %}
+            <div style="margin-top:var(--sp-4)">
+              <span class="badge badge-pending">This is your listing</span>
+            </div>
+          {% elif not user %}
+            <div style="margin-top:var(--sp-4)">
+              <a href="{{ url_for('pages.login_page') }}" class="btn btn-ghost">Login to Make an Offer</a>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Offers on this post -->
+        {% if user %}
+        <div class="reveal-up stagger-1">
+          <div style="margin-bottom:var(--sp-4)">
+            <h3>Offers on this listing</h3>
+            <p style="color:var(--clr-muted);font-size:.85rem;margin-top:4px">{{ offers|length }} offer{{ 's' if offers|length != 1 }} submitted</p>
+          </div>
+
+          {% if offers %}
+            <div class="bubble-thread">
+              {% for o in offers %}
+              <div class="history-bubble {% if o.proposer_id == user.user_id %}sent{% else %}recv{% endif %}">
+                <p class="bubble-label">
+                  {% if o.proposer_id == user.user_id %}You{% else %}Bidder #{{ o.proposer_id }}{% endif %}
+                  — <span class="badge badge-{{ o.status|lower }} {% if o.status == 'Pending' %}badge-pending{% endif %}" style="font-size:.6rem">{{ o.status }}</span>
+                </p>
+                <p>{{ o.offered_item_details }}</p>
+              </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="empty-state" style="padding:var(--sp-10) var(--sp-6)">
+              <div class="empty-state__icon" style="font-size:2.5rem">&#128203;</div>
+              <h3 style="font-size:1rem">No offers yet</h3>
+              <p style="font-size:.85rem">Be the first to make an offer on this listing.</p>
+            </div>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Right: sidebar info -->
+      <aside>
+        <div class="card reveal-up stagger-1" style="margin-bottom:var(--sp-6)">
+          <h4 style="margin-bottom:var(--sp-4)">&#128203; Listing Info</h4>
+          <div style="display:flex;flex-direction:column;gap:var(--sp-3)">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:var(--sp-3) 0;border-bottom:1px solid var(--clr-border)">
+              <span style="font-size:.82rem;color:var(--clr-muted)">Post ID</span>
+              <span style="font-size:.82rem;font-weight:600">#{{ post.post_id }}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:var(--sp-3) 0;border-bottom:1px solid var(--clr-border)">
+              <span style="font-size:.82rem;color:var(--clr-muted)">Status</span>
+              {% if post.status == 'Open' %}
+                <span class="badge badge-open"><span class="badge-dot"></span> Open</span>
+              {% else %}
+                <span class="badge badge-closed">Closed</span>
+              {% endif %}
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:var(--sp-3) 0">
+              <span style="font-size:.82rem;color:var(--clr-muted)">Total Offers</span>
+              <span style="font-size:.82rem;font-weight:600" data-count="{{ offers|length }}">{{ offers|length }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card reveal-up stagger-2">
+          <h4 style="margin-bottom:var(--sp-4)">&#128722; Quick Actions</h4>
+          <div style="display:flex;flex-direction:column;gap:var(--sp-3)">
+            <a href="{{ url_for('pages.marketplace') }}" class="btn btn-ghost btn-full">&#8592; Back to Marketplace</a>
+            {% if user %}
+              <a href="{{ url_for('pages.dashboard') }}" class="btn btn-ghost btn-full">My Negotiations</a>
+            {% endif %}
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- Offer Modal -->
+{% if user and post.status == 'Open' and post.owner_id != user.user_id %}
+<div class="modal-overlay" id="modal-offer" onclick="closeOnBackdrop(event,'modal-offer')">
+  <div class="modal">
+    <div class="modal__header">
+      <div>
+        <h3>Submit a Barter Offer</h3>
+        <p style="font-size:.82rem;color:var(--clr-muted);margin-top:4px">Describe what you're offering in exchange</p>
+      </div>
+      <button class="modal__close" onclick="closeModal('modal-offer')" aria-label="Close">&times;</button>
+    </div>
+    <div class="offer-target-preview">
+      <span style="font-size:1.8rem">&#128722;</span>
+      <div>
+        <p style="font-size:.68rem;color:var(--clr-muted);text-transform:uppercase;letter-spacing:.08em">Trading for</p>
+        <strong id="offer-target-title" style="font-size:.95rem">{{ post.title }}</strong>
+      </div>
+    </div>
+    <form id="form-offer">
+      <input type="hidden" id="offer-post-id" value="{{ post.post_id }}"/>
+      <div style="display:flex;flex-direction:column;gap:var(--sp-4)">
+        <div class="form-group">
+          <label class="form-label" for="offer-details">Your offer details</label>
+          <textarea class="form-textarea" id="offer-details" rows="4"
+            placeholder="Describe your item — condition, accessories, why it's a fair trade…" required></textarea>
+        </div>
+        <div style="display:flex;gap:var(--sp-3);margin-top:var(--sp-2)">
+          <button type="button" class="btn btn-ghost btn-full" onclick="closeModal('modal-offer')">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-full" id="btn-offer-submit">&#10003; Submit Offer</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openOffer(title, postId) {
+  const titleEl = document.getElementById('offer-target-title');
+  if (titleEl) titleEl.textContent = title;
+  openModal('modal-offer');
+}
+
+const formOffer = document.getElementById('form-offer');
+if (formOffer) {
+  formOffer.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btn-offer-submit');
+    btn.innerHTML = '<span class="spinner"></span> Submitting…';
+    btn.disabled = true;
+
+    const postId  = parseInt(document.getElementById('offer-post-id').value);
+    const details = document.getElementById('offer-details').value;
+
+    const resp = await fetch('/api/offers', {
+      method: 'POST',
+      headers: _authHeaders(),
+      body: JSON.stringify({ post_id: postId, offered_item_details: details })
+    });
+    const data = await resp.json();
+
+    if (resp.ok) {
+      closeModal('modal-offer');
+      showToast('Offer submitted! Awaiting the post owner.', 'success');
+      formOffer.reset();
+      setTimeout(() => location.reload(), 1000);
+    } else {
+      showToast(data.error || 'Failed to submit offer.', 'error');
+    }
+    btn.innerHTML = '&#10003; Submit Offer'; btn.disabled = false;
+  });
+}
+</script>
+{% endblock %}

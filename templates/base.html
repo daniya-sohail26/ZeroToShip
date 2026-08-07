@@ -3,16 +3,20 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="TradePost — Peer-to-peer barter exchange. Post items, negotiate trades, close deals with no money involved."/>
   <title>{% block title %}TradePost{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
   {% block head %}{% endblock %}
 </head>
 <body>
 
-<nav class="navbar">
+<!-- Particle Background Canvas -->
+<canvas id="particle-canvas" aria-hidden="true"></canvas>
+
+<nav class="navbar" id="main-nav">
   <div class="container navbar__inner">
     <a href="{{ url_for('pages.marketplace') }}" class="navbar__logo">
       <div class="logo-mark">T</div>
@@ -45,18 +49,21 @@
 <div class="modal-overlay" id="modal-post" onclick="closeOnBackdrop(event,'modal-post')">
   <div class="modal">
     <div class="modal__header">
-      <div><h3>Create a New Listing</h3><p style="font-size:.82rem;color:var(--clr-muted);margin-top:4px">Post an item to the Trading Board</p></div>
-      <button class="modal__close" onclick="closeModal('modal-post')">&times;</button>
+      <div>
+        <h3>Create a New Listing</h3>
+        <p style="font-size:.82rem;color:var(--clr-muted);margin-top:4px">Post an item to the Trading Board</p>
+      </div>
+      <button class="modal__close" onclick="closeModal('modal-post')" aria-label="Close">&times;</button>
     </div>
     <form id="form-new-post">
       <div style="display:flex;flex-direction:column;gap:var(--sp-4)">
         <div class="form-group">
-          <label class="form-label">Item Title</label>
-          <input class="form-input" name="title" placeholder="e.g. Fender Telecaster 1972" required/>
+          <label class="form-label" for="post-title">Item Title</label>
+          <input class="form-input" id="post-title" name="title" placeholder="e.g. Fender Telecaster 1972" required/>
         </div>
         <div class="form-group">
-          <label class="form-label">Description</label>
-          <textarea class="form-textarea" name="description" placeholder="Describe condition, age, accessories, and what you want in return…" required></textarea>
+          <label class="form-label" for="post-desc">Description</label>
+          <textarea class="form-textarea" id="post-desc" name="description" placeholder="Describe condition, age, accessories, and what you want in return…" required></textarea>
         </div>
         <div style="display:flex;gap:var(--sp-3);margin-top:var(--sp-2)">
           <button type="button" class="btn btn-ghost btn-full" onclick="closeModal('modal-post')">Cancel</button>
@@ -80,10 +87,10 @@
 </footer>
 
 <script>
-  // Inject server-side data for JS
+  // Inject server-side auth state for JS consumption
   const APP = {
-    token: localStorage.getItem('tp_token') || '',
-    userId: parseInt(localStorage.getItem('tp_user_id') || '0'),
+    token:    localStorage.getItem('tp_token') || '',
+    userId:   parseInt(localStorage.getItem('tp_user_id') || '0'),
     username: localStorage.getItem('tp_username') || '',
     loggedIn: {{ 'true' if user else 'false' }},
   };

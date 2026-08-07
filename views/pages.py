@@ -2,7 +2,7 @@
 views/pages.py
 ==============
 Flask page routes — serve Jinja2 HTML templates populated with live data
-from TradeStore and UserStore. No mock variables remain after Phase 5.
+from TradeStore and UserStore.
 
 Routes
 ------
@@ -60,7 +60,6 @@ def marketplace():
     """
     Landing page — Trading Board.
     Loads ALL posts from tradepost_db.json and passes them to the template.
-    The template renders one card per post; no hardcoded data remains.
     """
     user  = _current_user_from_cookie()
     posts = _trade.get_all_posts()          # all statuses; template filters client-side
@@ -70,7 +69,7 @@ def marketplace():
     closed_count = sum(1 for p in posts if p.status == "Closed")
 
     # per-post offer count so the cards can display it
-    _, all_offers = _trade._load()
+    all_offers = _trade.get_all_offers()
     offer_counts = {}
     for o in all_offers:
         offer_counts[o.post_id] = offer_counts.get(o.post_id, 0) + 1
@@ -96,8 +95,9 @@ def dashboard():
     if user is None:
         return _require_login()
 
-    posts, all_offers = _trade._load()
-    post_map = {p.post_id: p for p in posts}
+    posts       = _trade.get_all_posts()
+    all_offers  = _trade.get_all_offers()
+    post_map    = {p.post_id: p for p in posts}
 
     # collect offers where this user is either the post owner or the proposer
     my_offers = []
@@ -143,14 +143,14 @@ def dashboard():
 @pages_bp.route("/post/<int:post_id>")
 def post_detail(post_id):
     """Single post detail with its offer list."""
-    user = _current_user_from_cookie()
-    post = _trade.get_post(post_id)
+    user   = _current_user_from_cookie()
+    post   = _trade.get_post(post_id)
     if post is None:
         return render_template("404.html"), 404
 
-    offers = _trade.get_offers_for_post(post_id)
-    _, all_offers = _trade._load()
-    offer_counts  = {}
+    offers      = _trade.get_offers_for_post(post_id)
+    all_offers  = _trade.get_all_offers()
+    offer_counts = {}
     for o in all_offers:
         offer_counts[o.post_id] = offer_counts.get(o.post_id, 0) + 1
 
