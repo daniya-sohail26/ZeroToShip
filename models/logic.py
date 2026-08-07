@@ -42,12 +42,14 @@ class TradePost:
     VALID_STATUSES = {"Open", "Closed"}
 
     def __init__(self, post_id: int, title: str, description: str,
-                 owner_id: int, status: str = "Open"):
+                 owner_id: int, status: str = "Open",
+                 image_url: str | None = None):
         self.post_id     = post_id
         self.title       = title
         self.description = description
         self.owner_id    = owner_id
         self.status      = status
+        self.image_url   = image_url  # relative path under static/
 
     def to_dict(self) -> dict:
         return {
@@ -56,6 +58,7 @@ class TradePost:
             "description": self.description,
             "owner_id":    self.owner_id,
             "status":      self.status,
+            "image_url":   self.image_url,
         }
 
     @classmethod
@@ -66,6 +69,7 @@ class TradePost:
             description=d["description"],
             owner_id=d["owner_id"],
             status=d.get("status", "Open"),
+            image_url=d.get("image_url"),
         )
 
 
@@ -185,7 +189,8 @@ class TradeStore:
         return None
 
     def create_post(self, title: str, description: str,
-                    owner_id: int) -> TradePost:
+                    owner_id: int,
+                    image_url: str | None = None) -> TradePost:
         """Create and persist a new TradePost with status='Open'."""
         posts, offers = self._load()
         post = TradePost(
@@ -193,6 +198,7 @@ class TradeStore:
             title=title,
             description=description,
             owner_id=owner_id,
+            image_url=image_url,
         )
         posts.append(post)
         self._save(posts, offers)

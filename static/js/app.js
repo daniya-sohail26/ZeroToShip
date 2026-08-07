@@ -1,319 +1,368 @@
 /**
- * TradePost — Premium Frontend Engine
- * =====================================
- * Scroll-reveal, 3D card tilt, particle canvas, animated counters,
- * ripple effects, typed text, smooth toast system.
+ * TradePost interaction layer
+ * Cursor, ambient canvas, reveal motion, counters, upload preview, filters, and modals.
  */
 'use strict';
 
-/* ══════════════════════════════════════════════════════════════
-   1. PARTICLE BACKGROUND
-══════════════════════════════════════════════════════════════ */
-(function initParticles() {
+(function initCursor() {
+  const ring = document.querySelector('.cursor__ring');
+  const dot = document.querySelector('.cursor__dot');
+  if (!ring || !dot || window.matchMedia('(pointer: coarse)').matches) return;
+
+  let mouseX = -120;
+  let mouseY = -120;
+  let ringX = -120;
+  let ringY = -120;
+
+  document.addEventListener('mousemove', event => {
+    mouseX = event.clientX;
+    mouseY = event.clientY;
+    dot.style.left = `${mouseX}px`;
+    dot.style.top = `${mouseY}px`;
+  });
+
+  document.addEventListener('mousedown', () => ring.classList.add('click'));
+  document.addEventListener('mouseup', () => ring.classList.remove('click'));
+
+  document.querySelectorAll('a, button, input, textarea, select, .trade-card, .chip, .tab, .upload-zone')
+    .forEach(element => {
+      element.addEventListener('mouseenter', () => ring.classList.add('hover'));
+      element.addEventListener('mouseleave', () => ring.classList.remove('hover'));
+    });
+
+  function animate() {
+    ringX += (mouseX - ringX) * 0.1;
+    ringY += (mouseY - ringY) * 0.1;
+    ring.style.left = `${ringX}px`;
+    ring.style.top = `${ringY}px`;
+    requestAnimationFrame(animate);
+  }
+
+  animate();
+})();
+
+(function initCanvas() {
   const canvas = document.getElementById('particle-canvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
-  let particles = [];
-  let W, H;
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let width = 0;
+  let height = 0;
+  let points = [];
 
   function resize() {
-    W = canvas.width  = window.innerWidth;
-    H = canvas.height = window.innerHeight;
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+    const count = Math.min(46, Math.floor((width * height) / 26000));
+    points = Array.from({ length: count }, () => ({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      vx: (Math.random() - 0.5) * 0.22,
+      vy: (Math.random() - 0.5) * 0.22,
+      r: Math.random() * 1.8 + 0.7,
+    }));
   }
+
+  function draw() {
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = 'rgba(21,21,18,0.28)';
+    points.forEach(point => {
+      if (!reduceMotion) {
+        point.x += point.vx;
+        point.y += point.vy;
+        if (point.x < 0 || point.x > width) point.vx *= -1;
+        if (point.y < 0 || point.y > height) point.vy *= -1;
+      }
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, point.r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    if (!reduceMotion) requestAnimationFrame(draw);
+  }
+
   resize();
+  draw();
   window.addEventListener('resize', resize);
-
-  function Particle() {
-    this.reset();
-  }
-  Particle.prototype.reset = function() {
-    this.x  = Math.random() * W;
-    this.y  = Math.random() * H;
-    this.r  = Math.random() * 1.5 + .4;
-    this.vx = (Math.random() - .5) * .35;
-    this.vy = (Math.random() - .5) * .35;
-    this.alpha = Math.random() * .45 + .1;
-    this.hue = Math.random() > .5 ? '91,156,246' : '139,92,246';
-  };
-  Particle.prototype.update = function() {
-    this.x += this.vx; this.y += this.vy;
-    if (this.x < -5 || this.x > W+5 || this.y < -5 || this.y > H+5) this.reset();
-  };
-  Particle.prototype.draw = function() {
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(${this.hue},${this.alpha})`;
-    ctx.fill();
-  };
-
-  const N = Math.min(80, Math.floor(W * H / 14000));
-  for (let i = 0; i < N; i++) particles.push(new Particle());
-
-  // Draw connections between nearby particles
-  function drawConnections() {
-    const MAX_DIST = 120;
-    for (let i = 0; i < particles.length; i++) {
-      for (let j = i+1; j < particles.length; j++) {
-        const dx = particles[i].x - particles[j].x;
-        const dy = particles[i].y - particles[j].y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        if (dist < MAX_DIST) {
-          const alpha = (1 - dist/MAX_DIST) * .12;
-          ctx.beginPath();
-          ctx.moveTo(particles[i].x, particles[i].y);
-          ctx.lineTo(particles[j].x, particles[j].y);
-          ctx.strokeStyle = `rgba(91,156,246,${alpha})`;
-          ctx.lineWidth = .6;
-          ctx.stroke();
-        }
-      }
-    }
-  }
-
-  function loop() {
-    ctx.clearRect(0, 0, W, H);
-    drawConnections();
-    particles.forEach(p => { p.update(); p.draw(); });
-    requestAnimationFrame(loop);
-  }
-  loop();
 })();
 
+function initSplitText() {
+  document.querySelectorAll('[data-split]').forEach(element => {
+    const words = element.textContent.trim().split(/\s+/);
+    element.innerHTML = words
+      .map(word => `<span class="sw"><i>${word}</i></span>`)
+      .join(' ');
+    element.classList.add('split-ready');
+  });
+}
 
-/* ══════════════════════════════════════════════════════════════
-   2. SCROLL REVEAL (Intersection Observer)
-══════════════════════════════════════════════════════════════ */
-(function initScrollReveal() {
-  const observer = new IntersectionObserver((entries) => {
+initSplitText();
+
+(function initReveal() {
+  const selectors = '.reveal-up,.reveal-left,.reveal-right,.reveal-scale,[data-split]';
+  const elements = document.querySelectorAll(selectors);
+  if (!elements.length) return;
+
+  const observer = new IntersectionObserver(entries => {
     entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('visible');
-        observer.unobserve(entry.target);
-      }
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add('visible');
+      if (entry.target.hasAttribute('data-split')) entry.target.classList.add('in');
+      observer.unobserve(entry.target);
     });
-  }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+  }, { threshold: 0.12, rootMargin: '0px 0px -30px 0px' });
 
-  document.querySelectorAll('.reveal-up,.reveal-left,.reveal-right,.reveal-scale')
-    .forEach(el => observer.observe(el));
+  elements.forEach(element => observer.observe(element));
 })();
 
+document.querySelectorAll('.btn-magnetic').forEach(button => {
+  button.addEventListener('mousemove', event => {
+    const rect = button.getBoundingClientRect();
+    const x = (event.clientX - rect.left - rect.width / 2) * 0.18;
+    const y = (event.clientY - rect.top - rect.height / 2) * 0.18;
+    button.style.transform = `translate(${x}px, ${y}px)`;
+  });
+  button.addEventListener('mouseleave', () => {
+    button.style.transform = '';
+  });
+});
 
-/* ══════════════════════════════════════════════════════════════
-   3. 3D CARD TILT
-══════════════════════════════════════════════════════════════ */
-(function initCardTilt() {
-  const TILT = 8; // max degrees
+(function initTiltCards() {
+  if (window.matchMedia('(pointer: coarse), (prefers-reduced-motion: reduce)').matches) return;
 
-  document.querySelectorAll('.card').forEach(card => {
-    card.addEventListener('mousemove', e => {
+  document.querySelectorAll('.tilt-card').forEach(card => {
+    card.addEventListener('mousemove', event => {
       const rect = card.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / rect.width  - .5;
-      const y = (e.clientY - rect.top)  / rect.height - .5;
-      card.style.transform = `
-        perspective(900px)
-        rotateY(${x * TILT}deg)
-        rotateX(${-y * TILT}deg)
-        translateY(-6px) scale(1.01)
-      `;
-      // update radial spotlight
-      card.style.setProperty('--mouse-x', `${(x+.5)*100}%`);
-      card.style.setProperty('--mouse-y', `${(y+.5)*100}%`);
+      const x = (event.clientX - rect.left) / rect.width - 0.5;
+      const y = (event.clientY - rect.top) / rect.height - 0.5;
+      card.style.transform = `perspective(900px) rotateX(${y * -5}deg) rotateY(${x * 7}deg) translateY(-6px)`;
     });
+
     card.addEventListener('mouseleave', () => {
       card.style.transform = '';
     });
   });
 })();
 
+(function initFloatOnScroll() {
+  const floaters = document.querySelectorAll('[data-float]');
+  if (!floaters.length || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-/* ══════════════════════════════════════════════════════════════
-   4. ANIMATED COUNTERS (odometer effect)
-══════════════════════════════════════════════════════════════ */
-function animateCounter(el, target, duration = 1400) {
+  let ticking = false;
+  function update() {
+    floaters.forEach(element => {
+      const rect = element.getBoundingClientRect();
+      const progress = (rect.top + rect.height / 2 - window.innerHeight / 2) / window.innerHeight;
+      element.style.transform = `translateY(${progress * -28}px)`;
+    });
+    ticking = false;
+  }
+
+  function requestUpdate() {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(update);
+  }
+
+  update();
+  window.addEventListener('scroll', requestUpdate, { passive: true });
+  window.addEventListener('resize', requestUpdate);
+})();
+
+function animateCount(element, target, ms = 1100) {
   const start = performance.now();
-  const from = 0;
-  function step(ts) {
-    const progress = Math.min((ts - start) / duration, 1);
-    const eased = 1 - Math.pow(1 - progress, 4); // ease-out-quart
-    el.textContent = Math.round(from + (target - from) * eased);
+  function step(now) {
+    const progress = Math.min((now - start) / ms, 1);
+    const eased = 1 - Math.pow(1 - progress, 4);
+    element.textContent = Math.round(target * eased);
     if (progress < 1) requestAnimationFrame(step);
   }
   requestAnimationFrame(step);
 }
 
 (function initCounters() {
-  const counterEls = document.querySelectorAll('[data-count]');
-  if (!counterEls.length) return;
+  const counters = document.querySelectorAll('[data-count]');
+  if (!counters.length) return;
 
-  const obs = new IntersectionObserver(entries => {
+  const observer = new IntersectionObserver(entries => {
     entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const el = entry.target;
-        const val = parseInt(el.dataset.count, 10);
-        animateCounter(el, val);
-        obs.unobserve(el);
-      }
+      if (!entry.isIntersecting) return;
+      animateCount(entry.target, parseInt(entry.target.dataset.count || '0', 10));
+      observer.unobserve(entry.target);
     });
-  }, { threshold: 0.5 });
+  }, { threshold: 0.45 });
 
-  counterEls.forEach(el => obs.observe(el));
+  counters.forEach(counter => observer.observe(counter));
 })();
 
-
-/* ══════════════════════════════════════════════════════════════
-   5. STAGGERED CARD ENTRANCE
-══════════════════════════════════════════════════════════════ */
-(function initStaggeredCards() {
-  const grid = document.getElementById('marketplace-grid');
-  if (!grid) return;
-
-  const cards = grid.querySelectorAll('.card');
-  cards.forEach((card, i) => {
-    card.style.opacity    = '0';
-    card.style.transform  = 'translateY(32px)';
-    card.style.transition = `opacity .55s ease ${i * 70}ms, transform .55s cubic-bezier(.22,1,.36,1) ${i * 70}ms`;
-  });
-
-  // Trigger after a short delay
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      cards.forEach(card => {
-        card.style.opacity   = '1';
-        card.style.transform = '';
-      });
-    });
-  });
-})();
-
-
-/* ══════════════════════════════════════════════════════════════
-   6. NAVBAR SCROLL EFFECT
-══════════════════════════════════════════════════════════════ */
-(function initNavbarScroll() {
+(function initNavbar() {
   const nav = document.querySelector('.navbar');
   if (!nav) return;
-  window.addEventListener('scroll', () => {
-    nav.classList.toggle('scrolled', window.scrollY > 20);
-  }, { passive: true });
+  const update = () => nav.classList.toggle('scrolled', window.scrollY > 18);
+  update();
+  window.addEventListener('scroll', update, { passive: true });
 })();
 
+let _selectedFile = null;
 
-/* ══════════════════════════════════════════════════════════════
-   7. BUTTON RIPPLE EFFECT
-══════════════════════════════════════════════════════════════ */
-document.addEventListener('click', e => {
-  const btn = e.target.closest('.btn');
-  if (!btn || btn.disabled) return;
-  const rect   = btn.getBoundingClientRect();
-  const size   = Math.max(rect.width, rect.height) * 2;
-  const ripple = document.createElement('span');
-  ripple.className = 'ripple';
-  ripple.style.cssText = `
-    width:${size}px; height:${size}px;
-    left:${e.clientX - rect.left - size/2}px;
-    top:${e.clientY - rect.top - size/2}px;
-  `;
-  btn.appendChild(ripple);
-  ripple.addEventListener('animationend', () => ripple.remove());
+(function initUpload() {
+  const zone = document.getElementById('upload-zone');
+  const input = document.getElementById('post-image');
+  const preview = document.getElementById('upload-preview');
+  const removeButton = document.getElementById('upload-remove');
+  if (!zone || !input || !preview) return;
+
+  function resetUpload() {
+    _selectedFile = null;
+    preview.innerHTML = '';
+    zone.classList.remove('has-image', 'dragging');
+    input.value = '';
+    if (removeButton) removeButton.style.display = 'none';
+  }
+
+  function handleFile(file) {
+    if (!file || !file.type.startsWith('image/')) return;
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Image must be under 5 MB.', 'error');
+      return;
+    }
+
+    _selectedFile = file;
+    const reader = new FileReader();
+    reader.onload = event => {
+      preview.innerHTML = `<img src="${event.target.result}" alt="Selected listing preview">`;
+      zone.classList.add('has-image');
+      if (removeButton) removeButton.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  zone.addEventListener('dragover', event => {
+    event.preventDefault();
+    zone.classList.add('dragging');
+  });
+
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragging'));
+
+  zone.addEventListener('drop', event => {
+    event.preventDefault();
+    zone.classList.remove('dragging');
+    handleFile(event.dataTransfer.files[0]);
+  });
+
+  zone.addEventListener('click', () => input.click());
+  zone.addEventListener('keydown', event => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      input.click();
+    }
+  });
+  input.addEventListener('change', event => handleFile(event.target.files[0]));
+
+  if (removeButton) {
+    removeButton.addEventListener('click', event => {
+      event.stopPropagation();
+      resetUpload();
+    });
+  }
+
+  window.resetNewPostForm = resetUpload;
+})();
+
+function openModal(id) {
+  if (id === 'modal-post' && typeof window.resetNewPostForm === 'function') {
+    window.resetNewPostForm();
+  }
+  document.getElementById(id)?.classList.add('open');
+}
+
+function closeModal(id) {
+  document.getElementById(id)?.classList.remove('open');
+}
+
+function closeOnBackdrop(event, id) {
+  if (event.target === event.currentTarget) closeModal(id);
+}
+
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape') return;
+  document.querySelectorAll('.modal-overlay.open').forEach(modal => modal.classList.remove('open'));
 });
 
-
-/* ══════════════════════════════════════════════════════════════
-   8. MODAL HELPERS
-══════════════════════════════════════════════════════════════ */
-function openModal(id)  { document.getElementById(id)?.classList.add('open') }
-function closeModal(id) { document.getElementById(id)?.classList.remove('open') }
-function closeOnBackdrop(e, id) { if (e.target === e.currentTarget) closeModal(id) }
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape')
-    document.querySelectorAll('.modal-overlay.open').forEach(el => el.classList.remove('open'));
-});
-
-
-/* ══════════════════════════════════════════════════════════════
-   9. TOAST SYSTEM
-══════════════════════════════════════════════════════════════ */
-function showToast(msg, type = 'info', ms = 4000) {
+function showToast(message, type = 'info', ms = 4200) {
   const area = document.getElementById('toast-area');
   if (!area) return;
-  const icons = { success: '✓', error: '✕', info: 'ℹ' };
-  const t = document.createElement('div');
-  t.className = `toast ${type}`;
-  t.innerHTML = `<span style="font-size:1.05rem;font-weight:700">${icons[type]||'ℹ'}</span><span>${msg}</span>`;
-  area.appendChild(t);
+
+  const toast = document.createElement('div');
+  const icon = document.createElement('span');
+  const text = document.createElement('span');
+  const icons = { success: 'OK', error: '!', info: 'i' };
+
+  toast.className = `toast ${type}`;
+  icon.className = 'toast__icon';
+  icon.textContent = icons[type] || icons.info;
+  text.textContent = message;
+
+  toast.append(icon, text);
+  area.appendChild(toast);
+
   setTimeout(() => {
-    t.style.transition = 'opacity .35s ease, transform .35s ease';
-    t.style.opacity    = '0';
-    t.style.transform  = 'translateX(110%)';
-    setTimeout(() => t.remove(), 360);
+    toast.style.transition = 'opacity 240ms ease, transform 240ms ease';
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(24px)';
+    setTimeout(() => toast.remove(), 260);
   }, ms);
 }
 
-
-/* ══════════════════════════════════════════════════════════════
-   10. MARKETPLACE FILTER / SORT
-══════════════════════════════════════════════════════════════ */
 let _activeFilter = 'All';
 
 function setFilter(status, chip) {
   _activeFilter = status;
-  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.chip').forEach(element => element.classList.remove('active'));
   chip?.classList.add('active');
   _applyFilters();
 }
 
-function filterCards() { _applyFilters(); }
+function filterCards() {
+  _applyFilters();
+}
 
 function _applyFilters() {
-  const q = (document.getElementById('search-input')?.value || '').toLowerCase().trim();
-  document.querySelectorAll('#marketplace-grid .item-card').forEach(card => {
+  const query = (document.getElementById('search-input')?.value || '').toLowerCase().trim();
+  document.querySelectorAll('#marketplace-grid .trade-card').forEach(card => {
     const status = card.dataset.status || '';
-    const title  = card.dataset.title  || '';
-    const desc   = card.dataset.desc   || '';
-    const matchS = _activeFilter === 'All' || status === _activeFilter;
-    const matchQ = !q || title.includes(q) || desc.includes(q);
-    const el = card.closest('.card') || card;
-    el.style.display = matchS && matchQ ? '' : 'none';
+    const title = card.dataset.title || '';
+    const desc = card.dataset.desc || '';
+    const matchesStatus = _activeFilter === 'All' || status === _activeFilter;
+    const matchesQuery = !query || title.includes(query) || desc.includes(query);
+    card.style.display = matchesStatus && matchesQuery ? '' : 'none';
   });
 }
 
 function sortCards(order) {
   const grid = document.getElementById('marketplace-grid');
   if (!grid) return;
-  const cards = [...grid.querySelectorAll('.card')];
+  const cards = [...grid.querySelectorAll('.trade-card')];
   cards.sort((a, b) => {
-    const ia = a.querySelector('.item-card');
-    const ib = b.querySelector('.item-card');
-    if (!ia || !ib) return 0;
-    if (order === 'alpha')   return (ia.dataset.title||'').localeCompare(ib.dataset.title||'');
-    if (order === 'offers')  return parseInt(ib.dataset.offers||0) - parseInt(ia.dataset.offers||0);
-    if (order === 'oldest')  return parseInt(ia.dataset.id||0) - parseInt(ib.dataset.id||0);
-    // newest (default): highest id first
-    return parseInt(ib.dataset.id||0) - parseInt(ia.dataset.id||0);
+    if (order === 'alpha') return (a.dataset.title || '').localeCompare(b.dataset.title || '');
+    if (order === 'offers') return parseInt(b.dataset.offers || '0', 10) - parseInt(a.dataset.offers || '0', 10);
+    if (order === 'oldest') return parseInt(a.dataset.id || '0', 10) - parseInt(b.dataset.id || '0', 10);
+    return parseInt(b.dataset.id || '0', 10) - parseInt(a.dataset.id || '0', 10);
   });
-  cards.forEach(c => grid.appendChild(c));
+  cards.forEach(card => grid.appendChild(card));
 }
 
-
-/* ══════════════════════════════════════════════════════════════
-   11. DASHBOARD TAB SWITCHING
-══════════════════════════════════════════════════════════════ */
 function switchTab(state, tabEl) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
   tabEl?.classList.add('active');
   document.querySelectorAll('.negotiation-card').forEach(card => {
-    const s = card.dataset.state;
+    const cardState = card.dataset.state;
     const show = state === 'all'
-      || s === state
-      || (state === 'closed' && (s === 'accepted' || s === 'declined'));
+      || cardState === state
+      || (state === 'closed' && (cardState === 'accepted' || cardState === 'declined'));
     card.style.display = show ? '' : 'none';
   });
 }
 
-
-/* ══════════════════════════════════════════════════════════════
-   12. AUTH HELPERS
-══════════════════════════════════════════════════════════════ */
 function _authHeaders() {
   return {
     'Content-Type': 'application/json',

@@ -1,173 +1,341 @@
 {% extends "base.html" %}
-{% block title %}TradePost — Marketplace{% endblock %}
+{% block title %}TradePost - Marketplace{% endblock %}
 
 {% block content %}
-<!-- Hero -->
 <section class="hero">
-  <div class="container">
-    <div class="hero__kicker">&#127381; Live Barter Exchange</div>
-    <h1 class="hero__title">
-      Trade What You Have<br/>
-      For <span class="gradient-text">What You Need</span>
-    </h1>
-    <p class="hero__sub">Browse peer listings, submit counter-bids, and close deals — no money changes hands.</p>
-    <div class="hero__cta">
-      {% if user %}
-        <button class="btn btn-primary" onclick="openModal('modal-post')">+ Post an Item</button>
-        <a href="{{ url_for('pages.dashboard') }}" class="btn btn-ghost">My Negotiations &#8594;</a>
-      {% else %}
-        <a href="{{ url_for('pages.register_page') }}" class="btn btn-primary">Get Started Free</a>
-        <a href="{{ url_for('pages.login_page') }}" class="btn btn-ghost">Log In &#8594;</a>
-      {% endif %}
+  <div class="container hero__shell">
+    <div class="hero__copy reveal-up">
+      <p class="hero__kicker"><span></span> Live barter exchange</p>
+      <h1 class="hero__title" data-split>Trade what you own for what you actually want.</h1>
+      <p class="hero__sub">
+        A visual-first marketplace for peer-to-peer swaps, built around confident listings,
+        active offers, and a cleaner negotiation flow.
+      </p>
+
+      <div class="hero__cta">
+        {% if user %}
+          <button class="btn btn-primary btn-magnetic" onclick="openModal('modal-post')">Post an Item <span class="btn-arrow">+</span></button>
+          <a href="{{ url_for('pages.dashboard') }}" class="btn btn-ghost">View Negotiations</a>
+        {% else %}
+          <a href="{{ url_for('pages.register_page') }}" class="btn btn-primary btn-magnetic">Start Trading <span class="btn-arrow">+</span></a>
+          <a href="{{ url_for('pages.login_page') }}" class="btn btn-ghost">Log In</a>
+        {% endif %}
+      </div>
+
+      <div class="hero__stats" aria-label="Marketplace stats">
+        <div class="hero__stat">
+          <strong data-count="{{ posts|length }}">{{ posts|length }}</strong>
+          <span>Total listings</span>
+        </div>
+        <div class="hero__stat">
+          <strong data-count="{{ open_count }}">{{ open_count }}</strong>
+          <span>Open trades</span>
+        </div>
+        <div class="hero__stat">
+          <strong data-count="{{ total_offers }}">{{ total_offers }}</strong>
+          <span>Offers sent</span>
+        </div>
+      </div>
     </div>
-    <div class="hero__stats">
-      <div>
-        <p class="hero__stat-val" data-count="{{ posts|length }}">{{ posts|length }}</p>
-        <p class="hero__stat-label">Total Listings</p>
+
+    <aside class="hero-showcase reveal-scale">
+      <div class="showcase-card">
+        <div class="showcase-card__top">
+          <p>Featured trade</p>
+          <span class="badge badge-open"><span class="badge-dot"></span> Live</span>
+        </div>
+        <a href="{% if posts %}{{ url_for('pages.post_detail', post_id=posts[0].post_id) }}{% else %}#{% endif %}" class="showcase-card__media">
+          {% if posts and posts[0].image_url %}
+            <img src="{{ url_for('static', filename=posts[0].image_url) }}" alt="{{ posts[0].title }}" loading="eager"/>
+          {% else %}
+            <div class="image-fallback">
+              <span>TP</span>
+            </div>
+          {% endif %}
+        </a>
+        <div class="showcase-card__body">
+          <p class="mono">CURATED BOARD / {% if posts %}#{{ posts[0].post_id }}{% else %}EMPTY{% endif %}</p>
+          <h2>{% if posts %}{{ posts[0].title }}{% else %}Your first listing belongs here{% endif %}</h2>
+          <p>{% if posts %}{{ posts[0].description }}{% else %}Add an image-rich listing to turn the board into a living trading gallery.{% endif %}</p>
+        </div>
       </div>
-      <div>
-        <p class="hero__stat-val" style="color:var(--clr-success)" data-count="{{ open_count }}">{{ open_count }}</p>
-        <p class="hero__stat-label">Open</p>
+      <div class="orbit-note orbit-note--one">
+        <strong>{{ open_count }}</strong>
+        <span>open</span>
       </div>
-      <div>
-        <p class="hero__stat-val" style="color:var(--clr-muted)" data-count="{{ closed_count }}">{{ closed_count }}</p>
-        <p class="hero__stat-label">Closed</p>
+      <div class="orbit-note orbit-note--two">
+        <strong>{{ active_offer_posts }}</strong>
+        <span>active</span>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<section class="section marquee-band" aria-label="Marketplace qualities">
+  <div class="marquee-band__track">
+    <span>Image-led listings</span>
+    <span>Peer negotiation</span>
+    <span>No-cash exchange</span>
+    <span>Offer tracking</span>
+    <span>Curated barter</span>
+    <span>Image-led listings</span>
+    <span>Peer negotiation</span>
+    <span>No-cash exchange</span>
+  </div>
+</section>
+
+<section class="section ritual-section">
+  <div class="container">
+    <div class="section-header reveal-up">
+      <div class="section-title">
+        <span class="section-kicker">Trade rhythm</span>
+        <h2>Every swap has a pulse.</h2>
+      </div>
+      <p class="section-lede">
+        TradePost keeps the board visual, the offers focused, and the final handoff clear.
+      </p>
+    </div>
+
+    <div class="ritual-grid">
+      <article class="ritual-card tilt-card reveal-up stagger-1">
+        <span class="ritual-card__num">01</span>
+        <h3>Frame the item</h3>
+        <p>Lead with a crisp title, a useful photo, and the details that make a trade feel fair.</p>
+      </article>
+      <article class="ritual-card tilt-card reveal-up stagger-2">
+        <span class="ritual-card__num">02</span>
+        <h3>Shape the offer</h3>
+        <p>Turn scattered messages into a single offer thread with clear next moves.</p>
+      </article>
+      <article class="ritual-card tilt-card reveal-up stagger-3">
+        <span class="ritual-card__num">03</span>
+        <h3>Close cleanly</h3>
+        <p>Accept the winning offer and let rival offers fall away from the board automatically.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="section pulse-section">
+  <div class="container pulse-shell">
+    <div class="pulse-copy reveal-left">
+      <span class="section-kicker">Marketplace signal</span>
+      <h2>Less listing dump. More trading floor.</h2>
+      <p>
+        The landing page now behaves like a living board: current inventory, active offers,
+        and open trades sit in the same visual system so visitors understand momentum fast.
+      </p>
+      <div class="pulse-copy__actions">
+        {% if user %}
+          <button class="btn btn-primary btn-magnetic" onclick="openModal('modal-post')">Add to the Board <span class="btn-arrow">+</span></button>
+        {% else %}
+          <a href="{{ url_for('pages.register_page') }}" class="btn btn-primary btn-magnetic">Join the Board <span class="btn-arrow">+</span></a>
+        {% endif %}
+        <a href="#marketplace" class="btn btn-ghost">Browse Listings</a>
+      </div>
+    </div>
+
+    <div class="pulse-panel reveal-right" data-float>
+      <div class="pulse-panel__scan"></div>
+      <div class="pulse-panel__header">
+        <p class="mono">LIVE BOARD SIGNAL</p>
+        <span class="badge badge-open"><span class="badge-dot"></span> Active</span>
+      </div>
+      <div class="pulse-metrics">
+        <div>
+          <strong data-count="{{ posts|length }}">{{ posts|length }}</strong>
+          <span>items indexed</span>
+        </div>
+        <div>
+          <strong data-count="{{ open_count }}">{{ open_count }}</strong>
+          <span>ready to trade</span>
+        </div>
+        <div>
+          <strong data-count="{{ total_offers }}">{{ total_offers }}</strong>
+          <span>offer moves</span>
+        </div>
+      </div>
+      <div class="pulse-bars" aria-hidden="true">
+        <span style="--h:72%"></span>
+        <span style="--h:44%"></span>
+        <span style="--h:88%"></span>
+        <span style="--h:58%"></span>
+        <span style="--h:76%"></span>
+        <span style="--h:36%"></span>
+        <span style="--h:64%"></span>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Marketplace -->
-<section class="section">
+{% if posts %}
+<section class="section gallery-section">
   <div class="container">
     <div class="section-header reveal-up">
       <div class="section-title">
-        <span class="section-kicker">All Listings</span>
-        <h2>Trading Board</h2>
+        <span class="section-kicker">Featured lanes</span>
+        <h2>A few trades with board energy.</h2>
       </div>
-      <div class="flex gap-3 items-center">
+      <p class="section-lede">
+        The first listings get an editorial pass before the full marketplace grid.
+      </p>
+    </div>
+
+    <div class="lane-grid">
+      {% for post in posts[:3] %}
+      {% set cnt = offer_counts.get(post.post_id, 0) %}
+      <a href="{{ url_for('pages.post_detail', post_id=post.post_id) }}" class="lane-card reveal-up stagger-{{ loop.index }} tilt-card">
+        <div class="lane-card__media">
+          {% if post.image_url %}
+            <img src="{{ url_for('static', filename=post.image_url) }}" alt="{{ post.title }}" loading="lazy"/>
+          {% else %}
+            <div class="image-fallback"><span>TP</span></div>
+          {% endif %}
+        </div>
+        <div class="lane-card__content">
+          <p class="mono">LANE {{ "%02d"|format(loop.index) }} / {{ cnt }} offer{{ 's' if cnt != 1 }}</p>
+          <h3>{{ post.title }}</h3>
+          <span class="lane-card__arrow">View</span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section class="section section--market">
+  <div class="container" id="marketplace">
+    <div class="section-header reveal-up">
+      <div class="section-title">
+        <span class="section-kicker">Trading board</span>
+        <h2>Browse the latest swaps</h2>
+      </div>
+      <div class="section-pill-row">
         <span class="badge badge-open"><span class="badge-dot"></span> {{ open_count }} Open</span>
         <span class="badge badge-closed">{{ closed_count }} Closed</span>
+        <span class="badge badge-pending">{{ posts|length }} Total</span>
       </div>
     </div>
 
     <div class="filter-bar reveal-up stagger-1">
       <div class="filter-bar__search">
-        <span class="filter-bar__search-icon">&#128269;</span>
-        <input class="form-input" type="text" placeholder="Search listings…" id="search-input" oninput="filterCards()" aria-label="Search listings"/>
+        <span class="filter-bar__search-icon">Search</span>
+        <input class="form-input" type="text" placeholder="Camera, bike, synth..." id="search-input" oninput="filterCards()" aria-label="Search listings"/>
       </div>
-      <div class="filter-chips">
+      <div class="filter-chips" aria-label="Filter listings">
         <button class="chip active" onclick="setFilter('All',this)">All</button>
         <button class="chip" onclick="setFilter('Open',this)">Open</button>
         <button class="chip" onclick="setFilter('Closed',this)">Closed</button>
       </div>
-      <div style="margin-left:auto">
-        <select class="form-select" style="width:auto;min-width:150px" onchange="sortCards(this.value)" aria-label="Sort listings">
-          <option value="newest">Newest First</option>
-          <option value="oldest">Oldest First</option>
-          <option value="alpha">A &#8594; Z</option>
-          <option value="offers">Most Offers</option>
-        </select>
-      </div>
+      <select class="form-select filter-sort" onchange="sortCards(this.value)" aria-label="Sort listings">
+        <option value="newest">Newest first</option>
+        <option value="oldest">Oldest first</option>
+        <option value="alpha">A to Z</option>
+        <option value="offers">Most offers</option>
+      </select>
     </div>
 
     {% if posts %}
     <div class="marketplace-grid" id="marketplace-grid">
       {% for post in posts %}
       {% set cnt = offer_counts.get(post.post_id, 0) %}
-      <article class="card item-card {% if post.status == 'Closed' %}is-closed{% endif %}"
+      <article class="trade-card {% if loop.first %}trade-card--feature{% endif %} {% if post.status == 'Closed' %}is-closed{% endif %}"
                data-status="{{ post.status }}"
                data-title="{{ post.title|lower }}"
                data-desc="{{ post.description|lower }}"
                data-offers="{{ cnt }}"
                data-id="{{ post.post_id }}">
-        <div class="item-card__img-wrap">
-          {{ ['&#127925;','&#128247;','&#128218;','&#127760;','&#128690;','&#9000;','&#127183;','&#127941;','&#128295;','&#127381;'][(post.post_id - 1) % 10] }}
-        </div>
-        <div>
-          <p class="item-card__category">Listing #{{ post.post_id }}</p>
-          <h3 class="item-card__title">{{ post.title }}</h3>
-          <p class="item-card__desc">{{ post.description }}</p>
-        </div>
-        <div class="flex gap-2 wrap" style="margin-top:var(--sp-2)">
-          {% if post.status == 'Open' %}
-            <span class="badge badge-open"><span class="badge-dot"></span> Open</span>
+        <a href="{{ url_for('pages.post_detail', post_id=post.post_id) }}" class="trade-card__media" aria-label="View listing {{ post.title }}">
+          {% if post.image_url %}
+            <img class="trade-card__img" src="{{ url_for('static', filename=post.image_url) }}" alt="{{ post.title }}" loading="lazy"/>
           {% else %}
-            <span class="badge badge-closed">Closed</span>
-          {% endif %}
-          {% if cnt > 0 %}
-            <span class="badge badge-pending">{{ cnt }} offer{{ 's' if cnt != 1 }}</span>
-          {% else %}
-            <span style="font-size:.78rem;color:var(--clr-muted)">No offers yet</span>
-          {% endif %}
-        </div>
-        <div class="item-card__meta">
-          <div class="item-card__owner">
-            <div class="avatar" style="width:26px;height:26px;font-size:.65rem">
-              {{ ((loop.index % 9) + 65) | chr }}
+            <div class="trade-card__placeholder" aria-hidden="true">
+              <span>TP</span>
             </div>
-            <span>Post #{{ post.post_id }}</span>
-          </div>
-          {% if post.status == 'Open' and user and post.owner_id != user.user_id %}
-            <button class="btn btn-primary btn-sm"
-              onclick="openOffer('{{ post.title|replace("'","\\'") }}', {{ post.post_id }})">
-              Make Offer
-            </button>
-          {% elif post.status == 'Open' and user and post.owner_id == user.user_id %}
-            <span class="badge badge-pending" style="font-size:.65rem">Your listing</span>
-          {% elif not user %}
-            <a href="{{ url_for('pages.login_page') }}" class="btn btn-ghost btn-sm">Login to Offer</a>
-          {% else %}
-            <button class="btn btn-ghost btn-sm" disabled>Closed</button>
           {% endif %}
+          <span class="trade-card__index mono">{{ "%02d"|format(loop.index) }}</span>
+          <span class="trade-card__status badge {% if post.status == 'Open' %}badge-open{% else %}badge-closed{% endif %}">
+            {% if post.status == 'Open' %}<span class="badge-dot"></span> Open{% else %}Closed{% endif %}
+          </span>
+        </a>
+        <div class="trade-card__body">
+          <div>
+            <p class="trade-card__num">Listing #{{ post.post_id }}</p>
+            <h3 class="trade-card__title">{{ post.title }}</h3>
+            <p class="trade-card__desc">{{ post.description }}</p>
+          </div>
+          <div class="trade-card__footer">
+            <div class="trade-card__meta">
+              {% if cnt > 0 %}
+                <span class="badge badge-pending">{{ cnt }} offer{{ 's' if cnt != 1 }}</span>
+              {% else %}
+                <span class="mono">No offers yet</span>
+              {% endif %}
+            </div>
+            {% if post.status == 'Open' and user and post.owner_id != user.user_id %}
+              <button class="btn btn-primary btn-sm"
+                data-offer-title="{{ post.title|e }}"
+                data-offer-id="{{ post.post_id }}"
+                onclick="openOffer(this.dataset.offerTitle, this.dataset.offerId)">
+                Offer
+              </button>
+            {% elif post.status == 'Open' and user and post.owner_id == user.user_id %}
+              <span class="badge badge-pending">Your listing</span>
+            {% elif not user %}
+              <a href="{{ url_for('pages.login_page') }}" class="btn btn-ghost btn-sm">Log in</a>
+            {% else %}
+              <button class="btn btn-ghost btn-sm" disabled>Closed</button>
+            {% endif %}
+          </div>
         </div>
       </article>
       {% endfor %}
     </div>
     {% else %}
     <div class="empty-state reveal-scale">
-      <div class="empty-state__icon">&#128722;</div>
+      <div class="empty-state__icon">TP</div>
       <h3>No listings yet</h3>
-      <p>Be the first to post an item to the Trading Board.</p>
+      <p>Be the first to post an item to the trading board.</p>
       {% if user %}
-        <button class="btn btn-primary" style="margin-top:var(--sp-6)" onclick="openModal('modal-post')">+ Post an Item</button>
+        <button class="btn btn-primary" onclick="openModal('modal-post')">Post an Item</button>
       {% else %}
-        <a href="{{ url_for('pages.register_page') }}" class="btn btn-primary" style="margin-top:var(--sp-6)">Get Started</a>
+        <a href="{{ url_for('pages.register_page') }}" class="btn btn-primary">Get Started</a>
       {% endif %}
     </div>
     {% endif %}
   </div>
 </section>
 
-<!-- Offer Modal -->
 {% if user %}
 <div class="modal-overlay" id="modal-offer" onclick="closeOnBackdrop(event,'modal-offer')">
   <div class="modal">
     <div class="modal__header">
       <div>
-        <h3>Submit a Barter Offer</h3>
-        <p style="font-size:.82rem;color:var(--clr-muted);margin-top:4px">Describe what you're offering in exchange</p>
+        <p class="section-kicker">Barter offer</p>
+        <h3>Make a serious swap</h3>
+        <p class="modal__lede">Describe what you are offering in exchange.</p>
       </div>
       <button class="modal__close" onclick="closeModal('modal-offer')" aria-label="Close">&times;</button>
     </div>
     <div class="offer-target-preview">
-      <span style="font-size:1.8rem">&#128722;</span>
+      <span class="offer-target-preview__mark">TP</span>
       <div>
-        <p style="font-size:.68rem;color:var(--clr-muted);text-transform:uppercase;letter-spacing:.08em">Trading for</p>
-        <strong id="offer-target-title" style="font-size:.95rem">—</strong>
+        <p>Trading for</p>
+        <strong id="offer-target-title">-</strong>
       </div>
     </div>
     <form id="form-offer">
       <input type="hidden" id="offer-post-id"/>
-      <div style="display:flex;flex-direction:column;gap:var(--sp-4)">
+      <div class="form-stack">
         <div class="form-group">
           <label class="form-label" for="offer-details">Your offer details</label>
           <textarea class="form-textarea" id="offer-details" rows="4"
-            placeholder="Describe your item — condition, accessories, why it's a fair trade…" required></textarea>
+            placeholder="Describe condition, accessories, and why this is a fair trade." required></textarea>
         </div>
-        <div style="display:flex;gap:var(--sp-3);margin-top:var(--sp-2)">
+        <div class="modal__actions">
           <button type="button" class="btn btn-ghost btn-full" onclick="closeModal('modal-offer')">Cancel</button>
-          <button type="submit" class="btn btn-primary btn-full" id="btn-offer-submit">&#10003; Submit Offer</button>
+          <button type="submit" class="btn btn-primary btn-full" id="btn-offer-submit">Submit Offer</button>
         </div>
       </div>
     </form>
@@ -189,10 +357,10 @@ if (formOffer) {
   formOffer.addEventListener('submit', async function(e) {
     e.preventDefault();
     const btn = document.getElementById('btn-offer-submit');
-    btn.innerHTML = '<span class="spinner"></span> Submitting…';
+    btn.innerHTML = '<span class="spinner"></span> Submitting';
     btn.disabled = true;
 
-    const postId  = parseInt(document.getElementById('offer-post-id').value);
+    const postId = parseInt(document.getElementById('offer-post-id').value);
     const details = document.getElementById('offer-details').value;
 
     const resp = await fetch('/api/offers', {
@@ -204,38 +372,14 @@ if (formOffer) {
 
     if (resp.ok) {
       closeModal('modal-offer');
-      showToast('Offer submitted! Awaiting the post owner.', 'success');
+      showToast('Offer submitted. Awaiting the post owner.', 'success');
       formOffer.reset();
     } else {
       showToast(data.error || 'Failed to submit offer.', 'error');
     }
-    btn.innerHTML = '&#10003; Submit Offer'; btn.disabled = false;
-  });
-}
 
-const formPost = document.getElementById('form-new-post');
-if (formPost) {
-  formPost.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const btn = document.getElementById('btn-post-submit');
-    btn.innerHTML = '<span class="spinner"></span> Posting…'; btn.disabled = true;
-
-    const fd = new FormData(formPost);
-    const resp = await fetch('/api/posts', {
-      method: 'POST',
-      headers: _authHeaders(),
-      body: JSON.stringify({ title: fd.get('title'), description: fd.get('description') })
-    });
-    const data = await resp.json();
-
-    if (resp.ok) {
-      closeModal('modal-post');
-      showToast('Listing posted!', 'success');
-      setTimeout(() => location.reload(), 900);
-    } else {
-      showToast(data.error || 'Failed to post listing.', 'error');
-    }
-    btn.innerHTML = '+ Post Listing'; btn.disabled = false;
+    btn.innerHTML = 'Submit Offer';
+    btn.disabled = false;
   });
 }
 </script>

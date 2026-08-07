@@ -3,71 +3,102 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta name="description" content="TradePost — Peer-to-peer barter exchange. Post items, negotiate trades, close deals with no money involved."/>
+  <meta name="description" content="TradePost is a peer-to-peer barter exchange for posting items, making offers, and closing trades without cash."/>
   <title>{% block title %}TradePost{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,600&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
   {% block head %}{% endblock %}
 </head>
 <body>
 
-<!-- Particle Background Canvas -->
 <canvas id="particle-canvas" aria-hidden="true"></canvas>
+<div class="cursor" aria-hidden="true">
+  <div class="cursor__ring" id="cursor-ring"></div>
+  <div class="cursor__dot" id="cursor-dot"></div>
+</div>
 
 <nav class="navbar" id="main-nav">
   <div class="container navbar__inner">
-    <a href="{{ url_for('pages.marketplace') }}" class="navbar__logo">
-      <div class="logo-mark">T</div>
-      <span>Trade</span>Post
+    <a href="{{ url_for('pages.marketplace') }}" class="navbar__logo" aria-label="TradePost home">
+      <span class="logo-mark">TP</span>
+      <span class="logo-word"><strong>Trade</strong>Post</span>
     </a>
+
     <ul class="navbar__links">
-      <li><a href="{{ url_for('pages.marketplace') }}" {% if request.endpoint == 'pages.marketplace' %}class="active"{% endif %}>Marketplace</a></li>
+      <li><a href="{{ url_for('pages.marketplace') }}"
+             {% if request.endpoint == 'pages.marketplace' %}class="active"{% endif %}>Marketplace</a></li>
       {% if user %}
-      <li><a href="{{ url_for('pages.dashboard') }}" {% if request.endpoint == 'pages.dashboard' %}class="active"{% endif %}>My Negotiations</a></li>
+      <li><a href="{{ url_for('pages.dashboard') }}"
+             {% if request.endpoint == 'pages.dashboard' %}class="active"{% endif %}>Negotiations</a></li>
       {% endif %}
     </ul>
+
     <div class="navbar__actions">
       {% if user %}
-        <a href="{{ url_for('pages.dashboard') }}" class="btn btn-ghost btn-sm">Dashboard</a>
-        <button class="btn btn-primary btn-sm" onclick="openModal('modal-post')">+ New Listing</button>
-        <div class="avatar" title="{{ user.username }}">{{ user.username[0].upper() }}</div>
-        <a href="{{ url_for('pages.logout') }}" class="btn btn-ghost btn-sm" style="color:var(--clr-danger);">Logout</a>
+        <button class="btn btn-primary btn-sm btn-magnetic" onclick="openModal('modal-post')">
+          New Listing <span class="btn-arrow">+</span>
+        </button>
+        <a href="{{ url_for('pages.dashboard') }}" class="avatar" title="{{ user.username }}">{{ user.username[0].upper() }}</a>
+        <a href="{{ url_for('pages.logout') }}" class="btn btn-ghost btn-sm btn-danger-link">Logout</a>
       {% else %}
         <a href="{{ url_for('pages.login_page') }}" class="btn btn-ghost btn-sm">Log In</a>
-        <a href="{{ url_for('pages.register_page') }}" class="btn btn-primary btn-sm">Get Started</a>
+        <a href="{{ url_for('pages.register_page') }}" class="btn btn-primary btn-sm btn-magnetic">
+          Start Trading <span class="btn-arrow">+</span>
+        </a>
       {% endif %}
     </div>
   </div>
 </nav>
 
-{% block content %}{% endblock %}
+<main>
+  {% block content %}{% endblock %}
+</main>
 
-<!-- ── New Listing Modal (only when logged in) ── -->
 {% if user %}
 <div class="modal-overlay" id="modal-post" onclick="closeOnBackdrop(event,'modal-post')">
   <div class="modal">
     <div class="modal__header">
       <div>
-        <h3>Create a New Listing</h3>
-        <p style="font-size:.82rem;color:var(--clr-muted);margin-top:4px">Post an item to the Trading Board</p>
+        <p class="section-kicker">New listing</p>
+        <h3>Create a trade-worthy post</h3>
+        <p class="modal__lede">Lead with a strong image, describe the item clearly, and invite a fair swap.</p>
       </div>
       <button class="modal__close" onclick="closeModal('modal-post')" aria-label="Close">&times;</button>
     </div>
+
     <form id="form-new-post">
-      <div style="display:flex;flex-direction:column;gap:var(--sp-4)">
+      <div class="form-stack">
         <div class="form-group">
-          <label class="form-label" for="post-title">Item Title</label>
-          <input class="form-input" id="post-title" name="title" placeholder="e.g. Fender Telecaster 1972" required/>
+          <label class="form-label" for="post-title">Item title</label>
+          <input class="form-input" id="post-title" name="title"
+                 placeholder="Vintage camera, studio monitor, city bike..." required/>
         </div>
         <div class="form-group">
-          <label class="form-label" for="post-desc">Description</label>
-          <textarea class="form-textarea" id="post-desc" name="description" placeholder="Describe condition, age, accessories, and what you want in return…" required></textarea>
+          <label class="form-label" for="post-desc">Trade notes</label>
+          <textarea class="form-textarea" id="post-desc" name="description"
+            placeholder="Condition, included accessories, ideal trade, and any pickup details."
+            required></textarea>
         </div>
-        <div style="display:flex;gap:var(--sp-3);margin-top:var(--sp-2)">
+        <div class="form-group">
+          <label class="form-label">Photo <span class="form-optional">optional</span></label>
+          <div class="upload-zone" id="upload-zone" role="button" tabindex="0"
+               aria-label="Upload listing image">
+            <input type="file" id="post-image" class="upload-input" accept="image/png,image/jpeg,image/webp,image/gif"/>
+            <div class="upload-zone__content">
+              <div class="upload-zone__icon">+</div>
+              <p>Drop a photo or <span>browse</span></p>
+              <p class="upload-zone__hint">PNG, JPG, WEBP, or GIF up to 5 MB</p>
+            </div>
+            <div class="upload-preview" id="upload-preview"></div>
+            <button type="button" class="upload-remove" id="upload-remove"
+                    style="display:none" aria-label="Remove image">&times;</button>
+          </div>
+        </div>
+        <div class="modal__actions">
           <button type="button" class="btn btn-ghost btn-full" onclick="closeModal('modal-post')">Cancel</button>
-          <button type="submit" class="btn btn-primary btn-full" id="btn-post-submit">+ Post Listing</button>
+          <button type="submit" class="btn btn-primary btn-full" id="btn-post-submit">Post Listing</button>
         </div>
       </div>
     </form>
@@ -78,24 +109,87 @@
 <div class="toast-area" id="toast-area"></div>
 
 <footer class="footer">
-  <div class="container">
-    <p>TradePost &mdash; Peer-to-Peer Barter Exchange &nbsp;|&nbsp;
+  <div class="container footer__inner">
+    <a href="{{ url_for('pages.marketplace') }}" class="navbar__logo footer__logo">
+      <span class="logo-mark">TP</span>
+      <span class="logo-word"><strong>Trade</strong>Post</span>
+    </a>
+    <p>Peer-to-peer barter, presented like a curated trading gallery.</p>
+    <div class="footer__links">
       <a href="{{ url_for('pages.marketplace') }}">Marketplace</a>
-      {% if user %}&nbsp;|&nbsp;<a href="{{ url_for('pages.dashboard') }}">My Negotiations</a>{% endif %}
-    </p>
+      {% if user %}<a href="{{ url_for('pages.dashboard') }}">Negotiations</a>{% endif %}
+    </div>
   </div>
 </footer>
 
 <script>
-  // Inject server-side auth state for JS consumption
-  const APP = {
-    token:    localStorage.getItem('tp_token') || '',
-    userId:   parseInt(localStorage.getItem('tp_user_id') || '0'),
-    username: localStorage.getItem('tp_username') || '',
-    loggedIn: {{ 'true' if user else 'false' }},
-  };
+const APP = {
+  token: localStorage.getItem('tp_token') || '',
+  userId: parseInt(localStorage.getItem('tp_user_id') || '0'),
+  username: localStorage.getItem('tp_username') || '',
+  loggedIn: {{ 'true' if user else 'false' }},
+};
 </script>
 <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
 {% block scripts %}{% endblock %}
+
+{% if user %}
+<script>
+document.getElementById('form-new-post').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('btn-post-submit');
+  btn.innerHTML = '<span class="spinner"></span> Posting';
+  btn.disabled = true;
+
+  let imageUrl = null;
+
+  if (_selectedFile) {
+    btn.innerHTML = '<span class="spinner"></span> Uploading';
+    const fd = new FormData();
+    fd.append('image', _selectedFile);
+    const up = await fetch('/api/upload', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + APP.token },
+      body: fd
+    });
+    const upData = await up.json();
+    if (up.ok) {
+      imageUrl = upData.image_url;
+    } else {
+      showToast(upData.error || 'Image upload failed.', 'error');
+      btn.innerHTML = 'Post Listing';
+      btn.disabled = false;
+      return;
+    }
+  }
+
+  btn.innerHTML = '<span class="spinner"></span> Publishing';
+  const resp = await fetch('/api/posts', {
+    method: 'POST',
+    headers: _authHeaders(),
+    body: JSON.stringify({
+      title: document.getElementById('post-title').value.trim(),
+      description: document.getElementById('post-desc').value.trim(),
+      image_url: imageUrl,
+    })
+  });
+  const data = await resp.json();
+
+  if (resp.ok) {
+    closeModal('modal-post');
+    showToast('Listing posted.', 'success');
+    document.getElementById('form-new-post').reset();
+    if (typeof window.resetNewPostForm === 'function') window.resetNewPostForm();
+    setTimeout(() => location.reload(), 900);
+  } else {
+    showToast(data.error || 'Failed to post listing.', 'error');
+  }
+
+  btn.innerHTML = 'Post Listing';
+  btn.disabled = false;
+});
+</script>
+{% endif %}
 </body>
 </html>

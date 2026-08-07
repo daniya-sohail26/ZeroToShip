@@ -74,11 +74,16 @@ def marketplace():
     for o in all_offers:
         offer_counts[o.post_id] = offer_counts.get(o.post_id, 0) + 1
 
+    active_offer_posts = sum(1 for count in offer_counts.values() if count > 0)
+    total_offers = len(all_offers)
+
     return render_template(
         "index.html",
         user         = user,
         posts        = posts,
         offer_counts = offer_counts,
+        active_offer_posts = active_offer_posts,
+        total_offers = total_offers,
         open_count   = open_count,
         closed_count = closed_count,
     )

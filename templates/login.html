@@ -4,10 +4,10 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <meta name="description" content="Log in to your TradePost account to start bartering."/>
-  <title>TradePost — Log In</title>
+  <title>TradePost - Log In</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,600&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
 </head>
 <body>
@@ -15,26 +15,24 @@
 <canvas id="particle-canvas" aria-hidden="true"></canvas>
 
 <div class="auth-page">
-  <div class="auth-card">
+  <div class="auth-card reveal-scale">
     <div class="auth-card__logo">
-      <div class="logo-mark">T</div>
+      <div class="logo-mark">TP</div>
       <h2 style="margin-top:var(--sp-3)">Welcome back</h2>
-      <p style="color:var(--clr-muted);font-size:.9rem;margin-top:6px">Sign in to your TradePost account</p>
+      <p style="color:var(--clr-muted);font-size:.9rem;margin-top:6px">Sign in to continue trading.</p>
     </div>
 
-    <form id="form-login" style="display:flex;flex-direction:column;gap:var(--sp-4)">
+    <form id="form-login" class="form-stack">
       <div class="form-group">
         <label class="form-label" for="login-username">Username</label>
         <input class="form-input" id="login-username" type="text" placeholder="your_username" required autocomplete="username"/>
       </div>
       <div class="form-group">
         <label class="form-label" for="login-password">Password</label>
-        <input class="form-input" id="login-password" type="password" placeholder="••••••••" required autocomplete="current-password"/>
+        <input class="form-input" id="login-password" type="password" placeholder="Your password" required autocomplete="current-password"/>
       </div>
       <p class="form-error" id="login-error"></p>
-      <button type="submit" class="btn btn-primary btn-full" id="btn-login" style="margin-top:var(--sp-2)">
-        Log In
-      </button>
+      <button type="submit" class="btn btn-primary btn-full" id="btn-login">Log In</button>
     </form>
 
     <div class="auth-divider">or</div>
@@ -47,17 +45,17 @@
 <div class="toast-area" id="toast-area"></div>
 
 <script>
-  const APP = { token: localStorage.getItem('tp_token')||'', loggedIn: false };
+  const APP = { token: localStorage.getItem('tp_token') || '', loggedIn: false };
 </script>
 <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 <script>
 document.getElementById('form-login').addEventListener('submit', async function(e) {
   e.preventDefault();
-  const btn   = document.getElementById('btn-login');
+  const btn = document.getElementById('btn-login');
   const errEl = document.getElementById('login-error');
   errEl.classList.remove('show');
-  btn.innerHTML = '<span class="spinner"></span> Signing in…';
-  btn.disabled  = true;
+  btn.innerHTML = '<span class="spinner"></span> Signing in';
+  btn.disabled = true;
 
   const resp = await fetch('/auth/login', {
     method: 'POST',
@@ -70,8 +68,8 @@ document.getElementById('form-login').addEventListener('submit', async function(
   const data = await resp.json();
 
   if (resp.ok) {
-    localStorage.setItem('tp_token',    data.token);
-    localStorage.setItem('tp_user_id',  data.user.user_id);
+    localStorage.setItem('tp_token', data.token);
+    localStorage.setItem('tp_user_id', data.user.user_id);
     localStorage.setItem('tp_username', data.user.username);
     document.cookie = `tp_token=${data.token}; path=/; SameSite=Lax`;
     window.location.href = '/';
@@ -79,7 +77,7 @@ document.getElementById('form-login').addEventListener('submit', async function(
     errEl.textContent = data.error || 'Login failed.';
     errEl.classList.add('show');
     btn.innerHTML = 'Log In';
-    btn.disabled  = false;
+    btn.disabled = false;
   }
 });
 </script>

@@ -2,27 +2,48 @@
 {% block title %}TradePost — {{ post.title }}{% endblock %}
 
 {% block content %}
-<!-- Post Header -->
-<section style="padding:var(--sp-12) 0 var(--sp-6);border-bottom:1px solid var(--clr-border)">
+<!-- Post Hero -->
+<section style="padding:var(--sp-12) 0 var(--sp-8);border-bottom:1px solid var(--clr-border)">
   <div class="container">
-    <div class="section-header reveal-up" style="margin-bottom:0">
-      <div class="section-title">
+    {% set cnt = offer_counts.get(post.post_id, 0) %}
+    <div class="post-hero reveal-up">
+      <div class="post-hero__media">
+        {% if post.image_url %}
+          <img src="{{ url_for('static', filename=post.image_url) }}" alt="{{ post.title }}" loading="lazy"/>
+        {% else %}
+          <div class="post-hero__fallback" aria-hidden="true">📷</div>
+        {% endif %}
+        <div class="post-hero__status badge {% if post.status == 'Open' %}badge-open{% else %}badge-closed{% endif %}">
+          {% if post.status == 'Open' %}<span class="badge-dot"></span> Open{% else %}Closed{% endif %}
+        </div>
+      </div>
+      <div class="post-hero__content">
         <span class="section-kicker">
           <a href="{{ url_for('pages.marketplace') }}" style="color:inherit;text-decoration:none">&#8592; Marketplace</a>
           &nbsp;/&nbsp; Listing #{{ post.post_id }}
         </span>
-        <h1 style="font-size:clamp(1.6rem,4vw,2.4rem)">{{ post.title }}</h1>
-      </div>
-      <div class="flex gap-3 items-center reveal-up stagger-1">
-        {% if post.status == 'Open' %}
-          <span class="badge badge-open"><span class="badge-dot"></span> Open</span>
-        {% else %}
-          <span class="badge badge-closed">Closed</span>
-        {% endif %}
-        {% set cnt = offer_counts.get(post.post_id, 0) %}
-        {% if cnt > 0 %}
+        <h1>{{ post.title }}</h1>
+        <p class="post-hero__desc">{{ post.description }}</p>
+        <div class="post-hero__meta">
           <span class="badge badge-pending">{{ cnt }} offer{{ 's' if cnt != 1 }}</span>
-        {% endif %}
+          <span class="badge badge-closed">Owner #{{ post.owner_id }}</span>
+          <span class="badge badge-accepted-glow">Trade ready</span>
+        </div>
+        <div class="hero__cta" style="margin-top:var(--sp-5)">
+          {% if post.status == 'Open' and user and post.owner_id != user.user_id %}
+            <button class="btn btn-primary btn-magnetic"
+                    data-offer-title="{{ post.title|e }}"
+                    data-offer-id="{{ post.post_id }}"
+                    onclick="openOffer(this.dataset.offerTitle, this.dataset.offerId)">
+              &#128722; Make an Offer
+            </button>
+          {% elif post.status == 'Open' and user and post.owner_id == user.user_id %}
+            <span class="badge badge-pending">This is your listing</span>
+          {% elif not user %}
+            <a href="{{ url_for('pages.login_page') }}" class="btn btn-ghost">Login to Make an Offer</a>
+          {% endif %}
+          <a href="{{ url_for('pages.dashboard') }}" class="btn btn-ghost">My Negotiations &#8594;</a>
+        </div>
       </div>
     </div>
   </div>
@@ -35,39 +56,29 @@
       <!-- Left: post details + offers -->
       <div>
         <!-- Post card -->
-        <div class="card reveal-up" style="margin-bottom:var(--sp-6)">
-          <div style="display:flex;align-items:center;gap:var(--sp-4);margin-bottom:var(--sp-4)">
-            <div style="font-size:3rem;
-              width:72px;height:72px;border-radius:14px;
-              background:linear-gradient(135deg,rgba(91,156,246,.1),rgba(139,92,246,.1));
-              display:flex;align-items:center;justify-content:center;
-              border:1px solid var(--clr-border);flex-shrink:0">
-              {{ ['&#127925;','&#128247;','&#128218;','&#127760;','&#128690;','&#9000;','&#127183;','&#127941;','&#128295;','&#127381;'][(post.post_id - 1) % 10] }}
+        <div class="card reveal-up detail-panel" style="margin-bottom:var(--sp-6)">
+          <div class="prose-card">
+            <p class="section-kicker">About this listing</p>
+            <p style="line-height:1.75;color:var(--clr-text)">{{ post.description }}</p>
+          </div>
+          <div class="detail-metrics">
+            <div class="detail-metric">
+              <span>Post ID</span>
+              <strong>#{{ post.post_id }}</strong>
             </div>
-            <div>
-              <h2 style="font-size:1.3rem;margin-bottom:var(--sp-1)">{{ post.title }}</h2>
-              <p style="color:var(--clr-muted);font-size:.82rem">Listed by Owner #{{ post.owner_id }}</p>
+            <div class="detail-metric">
+              <span>Status</span>
+              {% if post.status == 'Open' %}
+                <strong class="badge badge-open"><span class="badge-dot"></span> Open</strong>
+              {% else %}
+                <strong class="badge badge-closed">Closed</strong>
+              {% endif %}
+            </div>
+            <div class="detail-metric">
+              <span>Total offers</span>
+              <strong data-count="{{ offers|length }}">{{ offers|length }}</strong>
             </div>
           </div>
-          <div style="padding:var(--sp-4);background:rgba(255,255,255,.03);border:1px solid var(--clr-border);border-radius:var(--radius-sm)">
-            <p style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--clr-muted);margin-bottom:var(--sp-2)">Description</p>
-            <p style="line-height:1.7;color:var(--clr-text)">{{ post.description }}</p>
-          </div>
-          {% if post.status == 'Open' and user and post.owner_id != user.user_id %}
-            <div style="margin-top:var(--sp-4)">
-              <button class="btn btn-primary" onclick="openOffer('{{ post.title|replace("'","\\'") }}', {{ post.post_id }})">
-                &#128722; Make an Offer
-              </button>
-            </div>
-          {% elif post.status == 'Open' and user and post.owner_id == user.user_id %}
-            <div style="margin-top:var(--sp-4)">
-              <span class="badge badge-pending">This is your listing</span>
-            </div>
-          {% elif not user %}
-            <div style="margin-top:var(--sp-4)">
-              <a href="{{ url_for('pages.login_page') }}" class="btn btn-ghost">Login to Make an Offer</a>
-            </div>
-          {% endif %}
         </div>
 
         <!-- Offers on this post -->

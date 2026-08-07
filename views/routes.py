@@ -18,6 +18,9 @@ Endpoints
     PUT  /api/offers/<offer_id>/decline  Manually decline an offer     [auth]
 """
 
+import os
+import uuid
+from werkzeug.utils import secure_filename
 from flask import Blueprint, request, jsonify
 from middleware.auth_guard import token_required
 from models.logic import TradeStore
@@ -86,6 +89,7 @@ def create_post(current_user):
     body = request.get_json(silent=True) or {}
     title       = (body.get("title")       or "").strip()
     description = (body.get("description") or "").strip()
+    image_url   = body.get("image_url")  # optional, set after /api/upload
 
     if not title or not description:
         return jsonify({"error": "Both 'title' and 'description' are required."}), 400
@@ -94,11 +98,49 @@ def create_post(current_user):
         title=title,
         description=description,
         owner_id=current_user.user_id,
+        image_url=image_url,
     )
     return jsonify({
         "message": "Post created successfully.",
         "post":    _post_response(post),
     }), 201
+
+
+# ---------------------------------------------------------------------------
+# Image Upload
+# ---------------------------------------------------------------------------
+
+ALLOWED_EXT = {"png", "jpg", "jpeg", "gif", "webp"}
+UPLOAD_DIR  = os.path.join(os.path.dirname(__file__), "..", "static", "uploads")
+
+
+@api_bp.route("/upload", methods=["POST"])
+@token_required
+def upload_image(current_user):
+    """
+    POST /api/upload                                            [auth required]
+
+    Upload a listing image. Expects multipart/form-data with field 'image'.
+    Saves to static/uploads/ and returns the relative URL.
+
+    Response 201: { "image_url": "uploads/uuid.ext" }
+    """
+    if "image" not in request.files:
+        return jsonify({"error": "No file provided. Send a multipart field named 'image'."}), 400
+
+    f = request.files["image"]
+    if not f or f.filename == "":
+        return jsonify({"error": "No file selected."}), 400
+
+    ext = f.filename.rsplit(".", 1)[-1].lower() if "." in f.filename else ""
+    if ext not in ALLOWED_EXT:
+        return jsonify({"error": f"Unsupported format '{ext}'. Use PNG, JPG, GIF, or WEBP."}), 400
+
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    filename = f"{uuid.uuid4().hex}.{ext}"
+    f.save(os.path.join(UPLOAD_DIR, filename))
+
+    return jsonify({"image_url": f"uploads/{filename}"}), 201
 
 
 @api_bp.route("/posts/<int:post_id>", methods=["GET"])
